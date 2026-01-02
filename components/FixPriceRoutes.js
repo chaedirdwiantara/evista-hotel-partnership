@@ -163,7 +163,7 @@ export default function FixPriceRoutes({ routes, accentColor, primaryColor }) {
         {/* Info Notice */}
         <div className="mt-12 text-center">
           <p className="text-sm text-neutral-500">
-            💡 All prices include toll fees and parking. Airport pickup service available 24/7.
+            💡 Prices exclude toll fees and parking. Airport pickup service available 24/7.
           </p>
         </div>
       </div>
