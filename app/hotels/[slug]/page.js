@@ -1,19 +1,19 @@
 import { notFound } from "next/navigation";
-import { getHotelBySlug } from "@/lib/hotels";
+import { getHotelConfig, getAllHotelSlugs } from "@/lib/hotel-config";
 import HotelPageContent from "./HotelPageContent";
 
 /**
  * Dynamic Hotel Landing Page
  * 
  * Generates a unique landing page for each hotel partner based on slug.
- * Example URLs: /hotels/grand-plaza-jakarta, /hotels/royal-beach-bali
+ * Example URLs: /hotels/classic-hotel
  * 
  * @param {Object} params - Route parameters (Promise in Next.js 15+)
  * @param {string} params.slug - Hotel identifier slug
  */
 export default async function HotelPage({ params }) {
   const { slug } = await params;
-  const hotelData = getHotelBySlug(slug);
+  const hotelData = getHotelConfig(slug);
 
   // Return 404 if hotel not found
   if (!hotelData) {
@@ -28,11 +28,11 @@ export default async function HotelPage({ params }) {
  * This enables static generation at build time for better performance
  */
 export async function generateStaticParams() {
-  // In production, fetch this from your database/CMS
-  return [
-    { slug: "grand-plaza-jakarta" },
-    { slug: "royal-beach-bali" },
-  ];
+  const slugs = getAllHotelSlugs();
+  
+  return slugs.map((slug) => ({
+    slug: slug,
+  }));
 }
 
 /**
@@ -40,7 +40,7 @@ export async function generateStaticParams() {
  */
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const hotelData = getHotelBySlug(slug);
+  const hotelData = getHotelConfig(slug);
 
   if (!hotelData) {
     return {
@@ -50,7 +50,7 @@ export async function generateMetadata({ params }) {
 
   return {
     title: `${hotelData.name} × Evista | Luxury Electric Transport`,
-    description: `Experience sustainable luxury with Evista's premium electric vehicle service at ${hotelData.name}. ${hotelData.hero.subtitle}`,
+    description: `Experience sustainable luxury with Evista's premium electric vehicle service at ${hotelData.name}. ${hotelData.content.hero.subtitle}`,
     keywords: ["electric vehicle", "luxury transport", "hotel transport", hotelData.name, "Evista"],
   };
 }
