@@ -141,6 +141,12 @@ export default function FixPriceRoutes({ routes, accentColor, primaryColor }) {
                     </p>
                   </div>
                   <button 
+                    onClick={() => {
+                      const bookingSection = document.getElementById('services');
+                      if (bookingSection) {
+                        bookingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
+                    }}
                     className="px-6 py-3 rounded-xl font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-xl"
                     style={{ backgroundColor: accentColor }}
                   >

@@ -27,6 +27,14 @@ export default function HotelPageContent({ hotelData }) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Scroll to booking form
+  const scrollToBooking = () => {
+    const bookingSection = document.getElementById('services');
+    if (bookingSection) {
+      bookingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
     <div 
       className="relative"
@@ -104,6 +112,7 @@ export default function HotelPageContent({ hotelData }) {
               Features
             </a>
             <button 
+              onClick={scrollToBooking}
               className="px-6 py-2.5 rounded-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-xl"
               style={{ 
                 backgroundColor: hotelData.theme.accentColor,
@@ -166,6 +175,7 @@ export default function HotelPageContent({ hotelData }) {
           </p>
           
           <button 
+            onClick={scrollToBooking}
             className="group relative px-10 py-5 text-xl font-bold rounded-xl overflow-hidden transition-all duration-500 hover:scale-110 hover:shadow-2xl"
             style={{ 
               backgroundColor: hotelData.theme.accentColor,

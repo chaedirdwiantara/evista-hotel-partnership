@@ -128,7 +128,47 @@ export default function BookingForm({ hotelData }) {
   };
 
   const nextStep = () => {
-    if (currentStep < totalSteps) setCurrentStep(current => current + 1);
+    // Validate time on Step 2 before proceeding
+    if (currentStep === 2) {
+      if (!isPickupTimeValid()) {
+        setFormError("Please select a valid pickup time (at least 60 minutes from now).");
+        return;
+      }
+    }
+    
+    if (currentStep < totalSteps) {
+      setFormError(null);
+      setCurrentStep(current => current + 1);
+    }
+  };
+
+  // Validate pickup time is at least 60 minutes from now
+  const isPickupTimeValid = () => {
+    if (!formData.pickupTime || !formData.pickupDate) return false;
+    
+    // Calculate minimum time
+    const now = new Date();
+    const minDateTime = new Date(now.getTime() + 60 * 60 * 1000);
+    const minDate = minDateTime.toISOString().split("T")[0];
+    
+    const selectedDate = new Date(formData.pickupDate + "T00:00:00");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // If selected date is today, check time constraint
+    if (selectedDate.getTime() === today.getTime()) {
+      const [selectedHour, selectedMin] = formData.pickupTime.split(':').map(Number);
+      const minHours = minDateTime.getHours();
+      const minMinutes = minDateTime.getMinutes();
+      
+      const selectedTotalMin = selectedHour * 60 + selectedMin;
+      const minTotalMin = minHours * 60 + minMinutes;
+      
+      return selectedTotalMin >= minTotalMin;
+    }
+    
+    // For future dates, time is always valid
+    return true;
   };
 
   const prevStep = () => {
@@ -302,9 +342,29 @@ function Step1ServiceSelection({ formData, updateFormData, hotelData }) {
 }
 
 function Step2DateTime({ formData, updateFormData, hotelData }) {
-  const minDateTime = new Date();
-  minDateTime.setHours(minDateTime.getHours() + 1);
+  // Calculate minimum date and time (current time + 60 minutes)
+  const now = new Date();
+  const minDateTime = new Date(now.getTime() + 60 * 60 * 1000); // +60 minutes
   const minDate = minDateTime.toISOString().split("T")[0];
+  
+  // Calculate minimum time based on selected date
+  const getMinTime = () => {
+    if (!formData.pickupDate) return "";
+    
+    const selectedDate = new Date(formData.pickupDate + "T00:00:00");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // If selected date is today, enforce minimum time (now + 60 min)
+    if (selectedDate.getTime() === today.getTime()) {
+      const minHours = String(minDateTime.getHours()).padStart(2, '0');
+      const minMinutes = String(minDateTime.getMinutes()).padStart(2, '0');
+      return `${minHours}:${minMinutes}`;
+    }
+    
+    // For future dates, no time restriction
+    return "";
+  };
 
   const isNightTime = () => {
     if (!formData.pickupTime) return false;
@@ -312,19 +372,80 @@ function Step2DateTime({ formData, updateFormData, hotelData }) {
     return hour >= 0 && hour < 6;
   };
 
+  // Validate if selected time is valid
+  const isTimeValid = () => {
+    if (!formData.pickupTime || !formData.pickupDate) return true;
+    
+    const minTime = getMinTime();
+    if (!minTime) return true; // No restriction for future dates
+    
+    // Compare selected time with minimum time
+    const [selectedHour, selectedMin] = formData.pickupTime.split(':').map(Number);
+    const [minHour, minMin] = minTime.split(':').map(Number);
+    
+    const selectedTotalMin = selectedHour * 60 + selectedMin;
+    const minTotalMin = minHour * 60 + minMin;
+    
+    return selectedTotalMin >= minTotalMin;
+  };
+
+  // Handle time change with validation
+  const handleTimeChange = (e) => {
+    const selectedTime = e.target.value;
+    updateFormData("pickupTime", selectedTime);
+  };
+
+  const minTime = getMinTime();
+  const timeIsInvalid = !isTimeValid();
+
   return (
     <div className="space-y-8">
       <h2 className="text-3xl font-bold mb-6" style={{ color: hotelData.theme.primaryColor }}>Choose Date & Time</h2>
       <div className="grid md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-semibold text-neutral-700 mb-3">Pickup Date</label>
-          <input type="date" min={minDate} value={formData.pickupDate} onChange={(e) => updateFormData("pickupDate", e.target.value)} className="w-full px-6 py-4 rounded-xl border-2 border-neutral-200 focus:border-amber-500 focus:outline-none transition-all text-lg" />
+          <input 
+            type="date" 
+            min={minDate} 
+            value={formData.pickupDate} 
+            onChange={(e) => updateFormData("pickupDate", e.target.value)} 
+            className="w-full px-6 py-4 rounded-xl border-2 border-neutral-200 focus:border-amber-500 focus:outline-none transition-all text-lg" 
+          />
         </div>
         <div>
           <label className="block text-sm font-semibold text-neutral-700 mb-3">Pickup Time</label>
-          <input type="time" value={formData.pickupTime} onChange={(e) => updateFormData("pickupTime", e.target.value)} className="w-full px-6 py-4 rounded-xl border-2 border-neutral-200 focus:border-amber-500 focus:outline-none transition-all text-lg" />
+          <input 
+            type="time" 
+            min={minTime}
+            value={formData.pickupTime} 
+            onChange={handleTimeChange} 
+            className={`w-full px-6 py-4 rounded-xl border-2 focus:outline-none transition-all text-lg ${
+              timeIsInvalid 
+                ? 'border-red-500 focus:border-red-600 bg-red-50' 
+                : 'border-neutral-200 focus:border-amber-500'
+            }`}
+          />
+          {minTime && (
+            <p className={`text-xs mt-2 ${timeIsInvalid ? 'text-red-600 font-semibold' : 'text-neutral-500'}`}>
+              {timeIsInvalid ? '⚠️ ' : ''}Earliest available: {minTime}
+            </p>
+          )}
         </div>
       </div>
+
+      {timeIsInvalid && (
+        <div className="p-4 bg-red-50 border-2 border-red-200 rounded-xl">
+          <div className="flex items-start gap-3">
+            <div className="text-2xl">⚠️</div>
+            <div>
+              <h3 className="font-bold text-red-800 mb-1">Invalid Pickup Time</h3>
+              <p className="text-red-700 text-sm">
+                Please select a time at least 60 minutes from now. Earliest available time is {minTime}.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isNightTime() && (
         <div className="p-6 bg-amber-50 border-2 border-amber-200 rounded-xl">
