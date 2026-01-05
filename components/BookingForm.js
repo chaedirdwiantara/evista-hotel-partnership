@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { EvistaAPI } from "@/lib/evista-api";
+import PaymentWaiting from "./PaymentWaiting";
 
 /**
  * Multi-Step Booking Form Component
@@ -33,6 +34,15 @@ export default function BookingForm({ hotelData }) {
     // Step 4
     paymentMethod: null,
     termsAccepted: false,
+  });
+
+  // Payment state management
+  const [paymentState, setPaymentState] = useState({
+    status: 'idle', // idle | processing | waiting_payment | success | failed
+    type: null, // 'instant' | 'va' | 'qris'
+    data: null,  // Payment details (VA number, QR code, etc)
+    bookingId: null,
+    orderId: null
   });
 
   const [formError, setFormError] = useState(null);
@@ -68,57 +78,149 @@ export default function BookingForm({ hotelData }) {
     }
 
     if (!formData.termsAccepted) {
-      setFormError("Please accept the Terms of Service to continue.");
+      setFormError("Please accept the terms to continue.");
       return;
     }
 
     try {
+      // Step 1: Show processing state
+      setPaymentState({ ...paymentState, status: 'processing' });
       setLoading(true);
       
+      // Mock: Simulate booking creation API call (500ms delay)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       const route = hotelData.routes.find(r => r.id === formData.selectedRoute);
+      const mockBookingId = 'BK-' + new Date().toISOString().split('T')[0].replace(/-/g, '') + '-' + 
+                            Math.random().toString(36).substr(2, 3).toUpperCase();
+      const mockOrderId = 'EV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
       
-      // Submit checkout using Evista API
-      const checkoutData = {
-        service_type: formData.serviceType,
-        route_id: formData.selectedRoute,
-        route_name: route?.name,
-        pickup_location: route?.pickup,
-        destination: route?.destination,
-        pickup_date: formData.pickupDate,
-        pickup_time: formData.pickupTime,
-        is_round_trip: formData.isRoundTrip,
-        passenger_name: formData.passengerName,
-        passenger_phone: formData.passengerWhatsApp,
-        passenger_email: formData.passengerEmail,
-        room_number: formData.roomNumber,
-        payment_method: formData.paymentMethod,
-        total_price: calculatePrice(),
-        hotel_slug: hotelData.slug,
-      };
-
-      const result = await EvistaAPI.checkout.submitCheckout(checkoutData);
+      // Step 2: Get selected payment method and detect type from name
+      const selectedPayment = paymentOptions.find(p => p.id === formData.paymentMethod);
       
-      if (result.success !== false || result.data?.order_id) {
-        // Success - update form data to show confirmation screen
-        setFormData(prev => ({
-          ...prev,
-          bookingSuccess: true,
-          orderId: result.data?.order_id || 'EV-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
-        }));
+      // Detect payment type from name/description (API uses 'bank' field, not 'name')
+      const detectPaymentType = (payment) => {
+        if (!payment) return 'instant';
+        // API returns: option.bank = "BCA Virtual Account", option.name might not exist
+        const bankName = (payment.bank || payment.name || payment.desc || '').toLowerCase();
         
-        // Optional: Open payment URL in new tab if provided
-        if (result.data?.payment_url) {
-          window.open(result.data.payment_url, "_blank");
+        console.log('Payment detection:', { original: payment.bank, lowercase: bankName }); // Debug log
+        
+        // QRIS - scan to pay
+        if (bankName.includes('qris')) return 'qris';
+        
+        // Virtual Account - check for VA keywords
+        if (bankName.includes('virtual account') || bankName.includes(' va') || bankName.includes('va ')) return 'va';
+        
+        // Banks that typically use VA (check bank name)
+        const vaBanks = ['bca', 'bni', 'mandiri', 'bri', 'cimb', 'danamon', 'bsi', 'maybank', 'bnc'];
+        for (const bank of vaBanks) {
+          if (bankName.includes(bank)) return 'va';
         }
-      } else {
-        throw new Error(result.message || "Checkout failed");
+        
+        // Only Permata without "Virtual Account" = instant redirect
+        return 'instant';
+      };
+      
+      const paymentType = detectPaymentType(selectedPayment);
+      
+      // Step 3: Mock payment transaction creation (300ms delay)
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Step 4: Handle different payment types
+      if (paymentType === 'instant') {
+        // Instant Payment Flow - Show redirect message then success
+        setPaymentState({
+          status: 'processing',
+          type: 'instant',
+          data: { redirect_url: '#payment-gateway' },
+          bookingId: mockBookingId,
+          orderId: mockOrderId
+        });
+        
+        // Mock: Simulate redirect and instant success (2 seconds)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        setPaymentState({
+          status: 'success',
+          type: 'instant',
+          data: null,
+          bookingId: mockBookingId,
+          orderId: mockOrderId
+        });
+        
+      } else if (paymentType === 'va') {
+        // Virtual Account Flow - Show VA details and wait
+        const mockVANumber = '80123' + Math.floor(Math.random() * 100000000000).toString().padStart(11, '0');
+        const expiryDate = new Date();
+        expiryDate.setHours(23, 59, 59);
+        
+        setPaymentState({
+          status: 'waiting_payment',
+          type: 'va',
+          data: {
+            type: 'va',
+            va_number: mockVANumber,
+            bank: selectedPayment?.bank || 'BCA',
+            bank_logo: selectedPayment?.image,
+            amount: calculatePrice(),
+            expires_at: expiryDate.toISOString(),
+            instructions: {
+              steps: [
+                `Login to ${selectedPayment?.bank || 'bank'} mobile/internet banking`,
+                'Select "Transfer" menu',
+                'Choose "Virtual Account"',
+                `Enter VA number: ${mockVANumber}`,
+                `Verify amount: Rp ${calculatePrice().toLocaleString('id-ID')}`,
+                'Complete transaction'
+              ]
+            }
+          },
+          bookingId: mockBookingId,
+          orderId: mockOrderId
+        });
+        
+      } else if (paymentType === 'qris') {
+        // QRIS Flow - Show QR code and wait
+        const expiryDate = new Date();
+        expiryDate.setMinutes(expiryDate.getMinutes() + 60); // 1 hour expiry
+        
+        setPaymentState({
+          status: 'waiting_payment',
+          type: 'qris',
+          data: {
+            type: 'qris',
+            qr_code_url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgZmlsbD0iI2ZmZiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZmlsbD0iIzMzMyI+UVIgQ29kZTwvdGV4dD48L3N2Zz4=', // Mock QR code
+            amount: calculatePrice(),
+            expires_at: expiryDate.toISOString(),
+            instructions: {
+              steps: [
+                'Open your mobile banking or e-wallet app',
+                'Select "Scan QR" or "QRIS"',
+                'Scan the QR code below',
+                `Verify amount: Rp ${calculatePrice().toLocaleString('id-ID')}`,
+                'Complete payment'
+              ]
+            }
+          },
+          bookingId: mockBookingId,
+          orderId: mockOrderId
+        });
       }
+      
+      setLoading(false);
+      
     } catch (error) {
-      console.error("Checkout submission failed:", error);
-      setFormError(error.message || "Booking failed. Please try again or contact support.");
-    } finally {
+      console.error("Payment flow error:", error);
+      setFormError(error.message || "Payment processing failed. Please try again.");
+      setPaymentState({ ...paymentState, status: 'failed' });
       setLoading(false);
     }
+  };
+
+  // Handle payment success callback from PaymentWaiting component
+  const handlePaymentSuccess = () => {
+    setPaymentState(prev => ({ ...prev, status: 'success' }));
   };
 
   const totalSteps = 4;
@@ -314,11 +416,13 @@ export default function BookingForm({ hotelData }) {
             hotelData={hotelData}
             paymentOptions={paymentOptions}
             loading={loading}
+            paymentState={paymentState}
+            handlePaymentSuccess={handlePaymentSuccess}
           />
         )}
 
-        {/* Navigation - HIDE if booking is successful */}
-        {!formData.bookingSuccess && (
+        {/* Navigation - HIDE if booking is successful or in payment flow */}
+        {!formData.bookingSuccess && paymentState.status === 'idle' && (
           <div className="mt-8 pt-8 border-t border-neutral-200">
              {formError && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 animate-shake">
@@ -832,7 +936,7 @@ function Step3PassengerDetails({ formData, updateFormData, hotelData }) {
   );
 }
 
-function Step4Payment({ formData, updateFormData, calculatePrice, hotelData, paymentOptions, loading }) {
+function Step4Payment({ formData, updateFormData, calculatePrice, hotelData, paymentOptions, loading, paymentState, handlePaymentSuccess }) {
   const totalPrice = calculatePrice();
 
   // Map payment icons/emojis based on bank name
@@ -845,7 +949,8 @@ function Step4Payment({ formData, updateFormData, calculatePrice, hotelData, pay
     return "💵";
   };
 
-  if (formData.bookingSuccess) {
+  // Payment Success State
+  if (paymentState?.status === 'success') {
     return (
       <div className="text-center py-12 animate-fadeIn">
         <div className="text-8xl mb-8">🎉</div>
@@ -859,7 +964,7 @@ function Step4Payment({ formData, updateFormData, calculatePrice, hotelData, pay
         <div className="bg-neutral-50 p-8 rounded-3xl mb-12 max-w-md mx-auto border-2 border-neutral-100">
           <p className="text-sm text-neutral-500 uppercase tracking-widest mb-2 font-bold">Order ID</p>
           <p className="text-3xl font-mono font-bold" style={{ color: hotelData.theme.accentColor }}>
-            {formData.orderId}
+            {paymentState.orderId}
           </p>
         </div>
         <button 
@@ -873,6 +978,33 @@ function Step4Payment({ formData, updateFormData, calculatePrice, hotelData, pay
     );
   }
 
+  // Waiting for Payment (VA or QRIS)
+  if (paymentState?.status === 'waiting_payment' && paymentState?.data) {
+    return (
+      <PaymentWaiting 
+        paymentData={paymentState.data}
+        onPaymentSuccess={handlePaymentSuccess}
+        hotelData={hotelData}
+      />
+    );
+  }
+
+  // Processing State (Instant Payment redirect message)
+  if (paymentState?.status === 'processing' && paymentState?.type === 'instant') {
+    return (
+      <div className="text-center py-16 animate-fadeIn">
+        <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-amber-500 border-t-transparent mb-8"></div>
+        <h2 className="text-3xl font-bold mb-4" style={{ color: hotelData.theme.primaryColor }}>
+          Redirecting to Payment Gateway
+        </h2>
+        <p className="text-neutral-600 max-w-md mx-auto">
+          Please wait while we redirect you to our secure payment partner...
+        </p>
+      </div>
+    );
+  }
+
+  // Default: Show Payment Selection Form (idle state)
   return (
     <div className="space-y-10">
       <h2 className="text-3xl font-bold mb-6" style={{ color: hotelData.theme.primaryColor }}>
