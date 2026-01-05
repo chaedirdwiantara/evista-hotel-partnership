@@ -37,7 +37,7 @@ export default function FixPriceRoutes({ routes, accentColor, primaryColor }) {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
           {routes.map((route, index) => (
             <div
               key={route.id}
@@ -127,7 +127,7 @@ export default function FixPriceRoutes({ routes, accentColor, primaryColor }) {
                   <div className="text-center">
                     <p className="text-xs text-neutral-500 mb-1">Round Trip</p>
                     <p className="text-sm font-semibold text-neutral-800">
-                      {route.roundTripAvailable ? "Available" : "One Way"}
+                      {route.pricing ? "Available" : "One Way"}
                     </p>
                   </div>
                 </div>
@@ -137,7 +137,7 @@ export default function FixPriceRoutes({ routes, accentColor, primaryColor }) {
                   <div>
                     <p className="text-xs text-neutral-500 mb-1">Starting from</p>
                     <p className="text-2xl font-bold" style={{ color: accentColor }}>
-                      {formatPrice(route.basePrice)}
+                      {formatPrice(route.pricing?.economy?.oneWay || route.basePrice || 0)}
                     </p>
                   </div>
                   <button 

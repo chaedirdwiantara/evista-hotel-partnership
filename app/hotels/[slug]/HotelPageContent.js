@@ -397,6 +397,34 @@ export default function HotelPageContent({ hotelData }) {
         .animate-expandWidth {
           animation: expandWidth 1s ease-out 0.5s backwards;
         }
+        
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes scaleIn {
+          from {
+            transform: scale(0);
+          }
+          to {
+            transform: scale(1);
+          }
+        }
+        
+        .animate-slideDown {
+          animation: slideDown 0.3s ease-out;
+        }
+        
+        .animate-scaleIn {
+          animation: scaleIn 0.2s ease-out;
+        }
       `}</style>
     </div>
   );
