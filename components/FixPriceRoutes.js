@@ -37,19 +37,33 @@ export default function FixPriceRoutes({ routes, accentColor, primaryColor }) {
           </p>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-[820px] mx-auto">
           {routes.map((route, index) => (
             <div
               key={route.id}
               className="group relative bg-gradient-to-br from-white to-neutral-50 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-neutral-200"
               style={{
-                animation: `fadeInUp 0.6s ease-out ${index * 0.2}s backwards`
+                animation: `fadeInUp 0.6s ease-out ${index * 0.2}s backwards`,
+                width: '100%',
+                maxWidth: '380px',
+                minHeight: '680px',
+                margin: '0 auto'
               }}
             >
               {/* Route Image */}
               <div className="relative h-56 bg-gradient-to-br from-neutral-200 to-neutral-300 overflow-hidden">
-                {/* Placeholder - will be replaced with actual destination image */}
-                <div className="absolute inset-0 flex items-center justify-center">
+                {/* Actual destination image */}
+                <img 
+                  src={route.image} 
+                  alt={route.destination.name}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextElementSibling.style.display = 'flex';
+                  }}
+                />
+                {/* Fallback placeholder */}
+                <div className="absolute inset-0 hidden items-center justify-center">
                   <div className="text-center text-neutral-500">
                     <div className="text-6xl mb-2">✈️</div>
                     <p className="text-xs px-4">{route.destination.name}</p>
@@ -78,10 +92,19 @@ export default function FixPriceRoutes({ routes, accentColor, primaryColor }) {
               </div>
 
               {/* Route Info */}
-              <div className="p-6">
+              <div className="p-6 flex flex-col" style={{ flex: 1 }}>
                 <h3 
                   className="text-xl font-bold mb-4 group-hover:text-amber-600 transition-colors duration-300"
-                  style={{ color: primaryColor }}
+                  style={{ 
+                    color: primaryColor,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    minHeight: '2.5rem'
+                  }}
+                  title={route.name}
                 >
                   {route.name}
                 </h3>
@@ -94,9 +117,19 @@ export default function FixPriceRoutes({ routes, accentColor, primaryColor }) {
                         <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                       </svg>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-neutral-800">{route.pickup.name}</p>
-                      <p className="text-xs text-neutral-500">{route.pickup.address}</p>
+                    <div className="flex-1" style={{ minWidth: 0 }}>
+                      <p 
+                        className="text-sm font-semibold text-neutral-800 truncate" 
+                        title={route.pickup.name}
+                      >
+                        {route.pickup.name}
+                      </p>
+                      <p 
+                        className="text-xs text-neutral-500 truncate" 
+                        title={route.pickup.address}
+                      >
+                        {route.pickup.address}
+                      </p>
                     </div>
                   </div>
 
@@ -110,15 +143,25 @@ export default function FixPriceRoutes({ routes, accentColor, primaryColor }) {
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-neutral-800">{route.destination.name}</p>
-                      <p className="text-xs text-neutral-500">{route.destination.address}</p>
+                    <div className="flex-1" style={{ minWidth: 0 }}>
+                      <p 
+                        className="text-sm font-semibold text-neutral-800 truncate" 
+                        title={route.destination.name}
+                      >
+                        {route.destination.name}
+                      </p>
+                      <p 
+                        className="text-xs text-neutral-500 truncate" 
+                        title={route.destination.address}
+                      >
+                        {route.destination.address}
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {/* Features */}
-                <div className="flex items-center gap-4 mb-6 pb-6 border-b border-neutral-200">
+                <div className="flex items-center gap-4 mb-6">
                   <div className="text-center">
                     <p className="text-xs text-neutral-500 mb-1">Duration</p>
                     <p className="text-sm font-semibold text-neutral-800">{route.estimatedDuration} min</p>
@@ -132,26 +175,32 @@ export default function FixPriceRoutes({ routes, accentColor, primaryColor }) {
                   </div>
                 </div>
 
-                {/* Price & CTA */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-neutral-500 mb-1">Starting from</p>
-                    <p className="text-2xl font-bold" style={{ color: accentColor }}>
-                      {formatPrice(route.pricing?.economy?.oneWay || route.basePrice || 0)}
-                    </p>
+                {/* Spacer to push bottom section down */}
+                <div style={{ flex: 1 }}></div>
+
+                {/* Price & CTA - Always at bottom */}
+                <div>
+                  <div className="pb-6 mb-6 border-b border-neutral-200"></div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-neutral-500 mb-1">Starting from</p>
+                      <p className="text-2xl font-bold" style={{ color: accentColor }}>
+                        {formatPrice(route.pricing?.economy?.oneWay || route.basePrice || 0)}
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        const bookingSection = document.getElementById('services');
+                        if (bookingSection) {
+                          bookingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                      }}
+                      className="px-6 py-3 rounded-xl font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-xl"
+                      style={{ backgroundColor: accentColor }}
+                    >
+                      Book Now
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => {
-                      const bookingSection = document.getElementById('services');
-                      if (bookingSection) {
-                        bookingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }
-                    }}
-                    className="px-6 py-3 rounded-xl font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-xl"
-                    style={{ backgroundColor: accentColor }}
-                  >
-                    Book Now
-                  </button>
                 </div>
               </div>
 

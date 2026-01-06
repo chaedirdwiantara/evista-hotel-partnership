@@ -6,6 +6,7 @@ import Image from "next/image";
 import FixPriceRoutes from "@/components/FixPriceRoutes";
 import BookingForm from "@/components/BookingForm";
 import FleetShowcase from "@/components/FleetShowcase";
+import AboutPartnership from "@/components/AboutPartnership";
 
 /**
  * Hotel Landing Page Content
@@ -198,69 +199,8 @@ export default function HotelPageContent({ hotelData }) {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-24 bg-white relative overflow-hidden">
-        {/* Decorative Elements */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-100/30 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-neutral-100/50 rounded-full blur-3xl"></div>
-        
-        <div className="relative max-w-6xl mx-auto px-6">
-          <h2 
-            className="text-5xl md:text-6xl font-bold text-center mb-6 animate-fadeIn"
-            style={{ color: hotelData.theme.primaryColor }}
-          >
-            Why Choose {hotelData.name}?
-          </h2>
-          <div 
-            className="w-24 h-1 mx-auto mb-20 animate-expandWidth"
-            style={{ backgroundColor: hotelData.theme.accentColor }}
-          ></div>
-          
-          <div className="grid md:grid-cols-3 gap-12">
-            {hotelData.content.features.map((feature, index) => (
-              <div 
-                key={index}
-                className="group relative bg-gradient-to-br from-white to-neutral-50 p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-3 border border-neutral-100"
-                style={{
-                  animation: `fadeInUp 0.6s ease-out ${index * 0.2}s backwards`
-                }}
-              >
-                {/* Hover Glow Effect */}
-                <div 
-                  className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"
-                  style={{ 
-                    background: `radial-gradient(circle at center, ${hotelData.theme.accentColor}20, transparent)` 
-                  }}
-                ></div>
-                
-                <div className="relative">
-                  <div className="text-7xl mb-6 transform group-hover:scale-110 transition-transform duration-500">
-                    {feature.icon}
-                  </div>
-                  <h3 
-                    className="text-2xl font-bold mb-4 group-hover:text-amber-600 transition-colors duration-300"
-                    style={{ color: hotelData.theme.primaryColor }}
-                  >
-                    {feature.title}
-                  </h3>
-                  <p className="text-neutral-600 leading-relaxed">
-                    {feature.description}
-                  </p>
-                </div>
-
-                {/* Corner Accent */}
-                <div 
-                  className="absolute top-0 right-0 w-20 h-20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  style={{
-                    background: `linear-gradient(135deg, ${hotelData.theme.accentColor}20, transparent)`,
-                    borderTopRightRadius: "1rem"
-                  }}
-                ></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Evista Benefits Section */}
+      <AboutPartnership hotelData={hotelData} />
 
       {/* Fix Price Routes Section */}
       <div id="routes">
