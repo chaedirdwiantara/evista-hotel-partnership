@@ -1,8 +1,10 @@
 "use client";
 
+import VehicleSelector from './VehicleSelector';
+
 /**
  * Step 1: Service Selection Component
- * Handles route, vehicle class, and trip type selection
+ * Handles route, vehicle class, trip type, and specific vehicle selection
  */
 export default function Step1ServiceSelection({ formData, updateFormData, hotelData }) {
   // Get current price based on selections
@@ -126,6 +128,17 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
                 })}
               </div>
             </div>
+          )}
+
+          {/* Vehicle Selection - Shows after Vehicle Class is selected */}
+          {formData.selectedVehicleClass && hotelData.fleet && (
+            <VehicleSelector
+              selectedVehicleClass={formData.selectedVehicleClass}
+              selectedVehicle={formData.selectedVehicle}
+              onSelectVehicle={(vehicleId) => updateFormData("selectedVehicle", vehicleId)}
+              vehicles={hotelData.fleet.filter(v => v.vehicleClass === formData.selectedVehicleClass && v.available)}
+              hotelData={hotelData}
+            />
           )}
 
           {/* Trip Type Selection - Elegant Radio Buttons */}

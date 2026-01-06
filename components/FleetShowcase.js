@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Car, Zap, Wind, Sparkles } from "lucide-react";
+import { Car, Zap, Wind } from "lucide-react";
 
 /**
  * FleetShowcase Component
@@ -63,13 +63,23 @@ function VehicleCard({ vehicle, theme, index, onBook }) {
         delay: index * 0.1 
       }}
       viewport={{ once: true }}
-      className="card-luxury group"
+      className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
     >
-      {/* Vehicle Image Placeholder */}
-      <div className="aspect-video w-full image-placeholder relative overflow-hidden">
-        <span className="text-sm">{vehicle.name}</span>
-        {/* When adding real images: */}
-        {/* <img src={vehicle.image} alt={vehicle.name} className="w-full h-full object-cover" /> */}
+      {/* Vehicle Image */}
+      <div className="aspect-video w-full relative overflow-hidden bg-gradient-to-br from-neutral-100 to-neutral-50">
+        <img 
+          src={vehicle.image} 
+          alt={vehicle.name} 
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          onError={(e) => {
+            // Fallback to placeholder if image fails
+            e.target.style.display = 'none';
+            const fallback = document.createElement('div');
+            fallback.className = 'w-full h-full flex items-center justify-center text-7xl';
+            fallback.textContent = vehicle.category === 'sedan' ? '🚗' : vehicle.category === 'suv' ? '🚙' : '🚐';
+            e.target.parentElement.appendChild(fallback);
+          }}
+        />
         
         {/* Gradient Overlay on Hover */}
         <div 
@@ -93,30 +103,10 @@ function VehicleCard({ vehicle, theme, index, onBook }) {
           <Car className="w-6 h-6 text-neutral-400" />
         </div>
 
-        <p className="text-neutral-600 mb-4 flex items-center gap-2">
+        <p className="text-neutral-600 flex items-center gap-2">
           <Zap className="w-4 h-4" style={{ color: theme.primary }} />
-          {vehicle.capacity}
+          {vehicle.capacity} Passengers
         </p>
-
-        <div className="space-y-2">
-          {vehicle.features.map((feature, idx) => (
-            <div key={idx} className="flex items-center gap-2 text-sm text-neutral-600">
-              <Sparkles className="w-4 h-4" style={{ color: theme.primary }} />
-              {feature}
-            </div>
-          ))}
-        </div>
-
-        <button
-          onClick={() => onBook && onBook(vehicle)}
-          className="w-full mt-6 py-3 px-4 text-sm uppercase tracking-wider font-medium text-white transition-all duration-300 hover:shadow-lg hover:scale-[1.02]"
-          style={{ 
-            background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primary}dd 100%)`,
-            borderRadius: '2px'
-          }}
-        >
-          Book This Car
-        </button>
       </div>
     </motion.div>
   );

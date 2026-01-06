@@ -126,6 +126,14 @@ export default function Step4Payment({ formData, updateFormData, calculatePrice,
               <span className="font-semibold">Round Trip (PP)</span>
             </div>
           )}
+          {formData.selectedVehicle && (
+            <div className="flex justify-between py-3 border-b border-neutral-200">
+              <span className="text-neutral-600">Vehicle</span>
+              <span className="font-semibold text-right">
+                {hotelData.fleet.find(v => v.id === formData.selectedVehicle)?.name || 'Selected Vehicle'}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between py-3 border-b border-neutral-200">
             <span className="text-neutral-600">Passenger</span>
             <span className="font-semibold">{formData.passengerName}</span>

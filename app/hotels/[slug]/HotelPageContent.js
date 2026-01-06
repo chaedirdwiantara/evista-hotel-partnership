@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import FixPriceRoutes from "@/components/FixPriceRoutes";
 import BookingForm from "@/components/BookingForm";
+import FleetShowcase from "@/components/FleetShowcase";
 
 /**
  * Hotel Landing Page Content
@@ -271,40 +272,9 @@ export default function HotelPageContent({ hotelData }) {
       </div>
 
       {/* Fleet Showcase Section */}
-      <section id="fleet" className="py-24 bg-gradient-to-b from-white to-neutral-50">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <h2 
-            className="text-5xl md:text-6xl font-bold mb-6"
-            style={{ color: hotelData.theme.primaryColor }}
-          >
-            Our Premium Fleet
-          </h2>
-          <div 
-            className="w-24 h-1 mx-auto mb-8"
-            style={{ backgroundColor: hotelData.theme.accentColor }}
-          ></div>
-          <p className="text-neutral-600 text-lg mb-12 max-w-2xl mx-auto">
-            Experience sustainable luxury with our collection of premium electric vehicles
-          </p>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {hotelData.fleet && hotelData.fleet.map((vehicle, index) => (
-              <div 
-                key={vehicle.id}
-                className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
-                style={{animation: `fadeInUp 0.6s ease-out ${index * 0.15}s backwards`}}
-              >
-                <div className="text-6xl mb-4">🚗</div>
-                <h3 className="text-xl font-bold mb-2" style={{ color: hotelData.theme.primaryColor }}>
-                  {vehicle.name}
-                </h3>
-                <p className="text-sm text-neutral-600 mb-4">{vehicle.description}</p>
-                <div className="text-sm font-semibold" style={{ color: hotelData.theme.accentColor }}>
-                  {vehicle.capacity} Passengers
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* Fleet Showcase Section */}
+      <section id="fleet">
+        <FleetShowcase hotelData={hotelData} />
       </section>
 
       {/* Services Section */}

@@ -21,6 +21,7 @@ export default function BookingForm({ hotelData }) {
     serviceType: "fixPrice",
     selectedRoute: null,
     selectedVehicleClass: null,
+    selectedVehicle: null,
     isRoundTrip: false,
     rentalDuration: 12,
     
