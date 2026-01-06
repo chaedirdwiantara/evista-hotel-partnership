@@ -1109,7 +1109,10 @@ function Step4Payment({ formData, updateFormData, calculatePrice, hotelData, pay
                   </p>
                 </div>
                 {formData.paymentMethod === option.id && (
-                  <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-xl shadow-md animate-scaleIn">
+                  <div 
+                    className="w-8 h-8 rounded-full text-white flex items-center justify-center text-xl shadow-md animate-scaleIn"
+                    style={{ backgroundColor: hotelData.theme.accentColor }}
+                  >
                     ✓
                   </div>
                 )}
