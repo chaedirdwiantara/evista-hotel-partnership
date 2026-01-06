@@ -42,11 +42,13 @@ export default function BookingForm({ hotelData }) {
 
   // Payment state management
   const [paymentState, setPaymentState] = useState({
-    status: 'idle', // idle | processing | waiting_payment | success | failed
+    status: 'idle', // idle | processing | waiting_payment | success | failed | expired | cancelled
     type: null, // 'instant' | 'va' | 'qris'
     data: null,  // Payment details (VA number, QR code, etc)
     bookingId: null,
-    orderId: null
+    orderId: null,
+    errorMessage: null,
+    errorDetails: null
   });
 
   const [formError, setFormError] = useState(null);
@@ -225,6 +227,35 @@ export default function BookingForm({ hotelData }) {
   // Handle payment success callback from PaymentWaiting component
   const handlePaymentSuccess = () => {
     setPaymentState(prev => ({ ...prev, status: 'success' }));
+  };
+
+  // Handle payment expired callback
+  const handlePaymentExpired = () => {
+    setPaymentState(prev => ({ 
+      ...prev, 
+      status: 'expired',
+      errorMessage: 'Your payment session has expired. Please try again.',
+      errorDetails: 'Payment must be completed within the allocated time.'
+    }));
+  };
+
+  // Handle payment cancel callback
+  const handlePaymentCancel = () => {
+    setPaymentState(prev => ({ 
+      ...prev, 
+      status: 'cancelled',
+      errorMessage: 'Payment was cancelled by user.'
+    }));
+  };
+
+  // Handle payment failed callback (gateway error after booking created)
+  const handlePaymentFailed = (errorInfo) => {
+    setPaymentState(prev => ({ 
+      ...prev, 
+      status: 'failed',
+      errorMessage: errorInfo?.message || 'Payment processing failed.',
+      errorDetails: errorInfo?.details || 'An error occurred while processing your payment.'
+    }));
   };
 
   const totalSteps = 4;
@@ -422,6 +453,9 @@ export default function BookingForm({ hotelData }) {
             loading={loading}
             paymentState={paymentState}
             handlePaymentSuccess={handlePaymentSuccess}
+            handlePaymentExpired={handlePaymentExpired}
+            handlePaymentCancel={handlePaymentCancel}
+            handlePaymentFailed={handlePaymentFailed}
           />
         )}
 

@@ -1,12 +1,13 @@
 "use client";
 
 import PaymentWaiting from "../PaymentWaiting";
+import PaymentFailed from "../PaymentFailed";
 
 /**
  * Step 4: Payment & Confirmation Component
  * Handles payment method selection and displays payment states
  */
-export default function Step4Payment({ formData, updateFormData, calculatePrice, hotelData, paymentOptions, loading, paymentState, handlePaymentSuccess }) {
+export default function Step4Payment({ formData, updateFormData, calculatePrice, hotelData, paymentOptions, loading, paymentState, handlePaymentSuccess, handlePaymentExpired, handlePaymentCancel, handlePaymentFailed }) {
   const totalPrice = calculatePrice();
 
   // Map payment icons/emojis based on bank name
@@ -48,12 +49,32 @@ export default function Step4Payment({ formData, updateFormData, calculatePrice,
     );
   }
 
+  // Payment Error States (expired, failed, cancelled)
+  if (paymentState?.status === 'expired' || paymentState?.status === 'failed' || paymentState?.status === 'cancelled') {
+    return (
+      <PaymentFailed
+        errorType={paymentState.status}
+        errorData={{
+          orderId: paymentState.orderId,
+          message: paymentState.errorMessage,
+          details: paymentState.errorDetails
+        }}
+        onRetry={() => window.location.reload()}
+        onCancel={() => window.location.reload()}
+        hotelData={hotelData}
+      />
+    );
+  }
+
   // Waiting for Payment (VA or QRIS)
   if (paymentState?.status === 'waiting_payment' && paymentState?.data) {
     return (
       <PaymentWaiting 
         paymentData={paymentState.data}
         onPaymentSuccess={handlePaymentSuccess}
+        onExpired={handlePaymentExpired}
+        onCancel={handlePaymentCancel}
+        onFailed={handlePaymentFailed}
         hotelData={hotelData}
       />
     );

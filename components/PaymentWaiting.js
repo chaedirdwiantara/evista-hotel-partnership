@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export default function PaymentWaiting({ paymentData, onPaymentSuccess, hotelData }) {
+export default function PaymentWaiting({ paymentData, onPaymentSuccess, onExpired, onCancel, onFailed, hotelData }) {
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [copied, setCopied] = useState(false);
   const [pollingStatus, setPollingStatus] = useState('waiting'); // waiting | checking | success
@@ -16,6 +16,10 @@ export default function PaymentWaiting({ paymentData, onPaymentSuccess, hotelDat
 
       if (diff <= 0) {
         setTimeRemaining({ expired: true });
+        // Trigger expired callback
+        if (onExpired) {
+          onExpired();
+        }
         return;
       }
 
@@ -52,7 +56,7 @@ export default function PaymentWaiting({ paymentData, onPaymentSuccess, hotelDat
       }, Math.random() * 400 + 100);
     }, 5000);
 
-    // Mock auto-success after 15 seconds
+    // Mock auto-success after 15 seconds (simulates polling success)
     const mockSuccessTimeout = setTimeout(() => {
       setPollingStatus('success');
       setTimeout(() => {
@@ -64,7 +68,7 @@ export default function PaymentWaiting({ paymentData, onPaymentSuccess, hotelDat
       clearInterval(mockPollInterval);
       clearTimeout(mockSuccessTimeout);
     };
-  }, [paymentData, onPaymentSuccess]);
+  }, [paymentData, onPaymentSuccess, onFailed]);
 
   if (!paymentData) return null;
 
@@ -153,7 +157,7 @@ export default function PaymentWaiting({ paymentData, onPaymentSuccess, hotelDat
         </div>
 
         {/* Status Indicator */}
-        <div className="text-center">
+        <div className="text-center mb-12">
           <div className={`inline-flex items-center gap-3 px-6 py-4 rounded-2xl transition-all ${
             pollingStatus === 'checking' ? 'bg-blue-100 border-2 border-blue-300' : 'bg-neutral-100 border-2 border-neutral-200'
           }`}>
@@ -165,6 +169,18 @@ export default function PaymentWaiting({ paymentData, onPaymentSuccess, hotelDat
             </p>
           </div>
         </div>
+          
+        {/* Cancel Payment Button - Strategic Placement */}
+        {onCancel && (
+          <div className="text-center border-t border-neutral-200 pt-8 mt-8">
+            <button
+              onClick={onCancel}
+              className="text-neutral-500 hover:text-red-600 font-medium transition-colors text-sm flex items-center justify-center gap-2 mx-auto px-4 py-2 rounded-lg hover:bg-red-50"
+            >
+              <span>🚫</span> Cancel this booking
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -244,7 +260,7 @@ export default function PaymentWaiting({ paymentData, onPaymentSuccess, hotelDat
         </div>
 
         {/* Status Indicator */}
-        <div className="text-center">
+        <div className="text-center mb-12">
           <div className={`inline-flex items-center gap-3 px-6 py-4 rounded-2xl transition-all ${
             pollingStatus === 'checking' ? 'bg-purple-100 border-2 border-purple-300' : 'bg-neutral-100 border-2 border-neutral-200'
           }`}>
@@ -256,6 +272,18 @@ export default function PaymentWaiting({ paymentData, onPaymentSuccess, hotelDat
             </p>
           </div>
         </div>
+          
+        {/* Cancel Payment Button - Strategic Placement */}
+        {onCancel && (
+          <div className="text-center border-t border-neutral-200 pt-8 mt-8">
+            <button
+              onClick={onCancel}
+              className="text-neutral-500 hover:text-red-600 font-medium transition-colors text-sm flex items-center justify-center gap-2 mx-auto px-4 py-2 rounded-lg hover:bg-red-50"
+            >
+              <span>🚫</span> Cancel this booking
+            </button>
+          </div>
+        )}
       </div>
     );
   }
