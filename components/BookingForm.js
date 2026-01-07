@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { EvistaAPI } from "@/lib/evista-api";
+import { isUrgentNightBooking, buildUrgentNightMessage, sendWhatsAppMessage, sendAdminAutoNotification } from "@/lib/whatsapp-utils";
 import PaymentWaiting from "./PaymentWaiting";
 import Step1ServiceSelection from "./booking/Step1ServiceSelection";
+import Step1RentalSelection from "./booking/Step1RentalSelection";
 import Step2DateTime from "./booking/Step2DateTime";
+import Step2RentalVehicle from "./booking/Step2RentalVehicle";
 import Step3PassengerDetails from "./booking/Step3PassengerDetails";
 import Step4Payment from "./booking/Step4Payment";
 
@@ -12,18 +15,27 @@ import Step4Payment from "./booking/Step4Payment";
  * Multi-Step Booking Form Component
  * Luxury booking wizard with night reservation logic and WhatsApp integration
  */
-export default function BookingForm({ hotelData }) {
+export default function BookingForm({ hotelData, bookingType = "airport" }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [paymentOptions, setPaymentOptions] = useState([]);
   const [formData, setFormData] = useState({
-    // Step 1
+    // Booking Type
+    bookingType: bookingType, // "airport" | "rental"
+    
+    // Step 1 - Airport Transfer
     serviceType: "fixPrice",
     selectedRoute: null,
     selectedVehicleClass: null,
     selectedVehicle: null,
     isRoundTrip: false,
-    rentalDuration: 12,
+    
+    // Step 1 - Rental Specific
+    withDriver: true,
+    rentalDuration: null, // "6_hours", "12_hours", etc
+    rentalDate: "",
+    pickupLocation: "classic_hotel", // Fixed
+    returnLocation: null, // "classic_hotel" | "halim_airport"
     
     // Step 2
     pickupDate: "",
@@ -228,6 +240,16 @@ export default function BookingForm({ hotelData }) {
   // Handle payment success callback from PaymentWaiting component
   const handlePaymentSuccess = () => {
     setPaymentState(prev => ({ ...prev, status: 'success' }));
+    
+    // Send auto-notification to admin (background, user doesn't see)
+    const totalAmount = calculatePrice();
+    sendAdminAutoNotification(
+      hotelData.contact.whatsapp,
+      formData,
+      paymentState.bookingId || 'BK-PENDING',
+      totalAmount,
+      hotelData  // Pass hotelData for route/hotel name lookup
+    );
   };
 
   // Handle payment expired callback
@@ -345,7 +367,38 @@ export default function BookingForm({ hotelData }) {
     if (formData.serviceType === "fixPrice") {
       return formData.selectedRoute && formData.selectedVehicleClass;
     }
-    // For rental service, just need to select service type
+    
+    // For rental service, check all required fields
+    if (formData.serviceType === "rental") {
+      const hasDriver = formData.withDriver !== null && formData.withDriver !== undefined;
+      const hasDuration = !!formData.rentalDuration;
+      const hasDate = !!formData.rentalDate;
+      const hasTime = !!formData.pickupTime;
+      const hasReturnLocation = !!formData.returnLocation;
+      
+      // Validate pickup time is at least 60 mins from now if date is today
+      if (hasDate && hasTime) {
+        const selectedDate = new Date(formData.rentalDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (selectedDate.getTime() === today.getTime()) {
+          const [hour, min] = formData.pickupTime.split(':').map(Number);
+          const pickupDateTime = new Date();
+          pickupDateTime.setHours(hour, min, 0, 0);
+          
+          const minTime = new Date();
+          minTime.setMinutes(minTime.getMinutes() + 60);
+          
+          if (pickupDateTime < minTime) {
+            return false; // Time too soon
+          }
+        }
+      }
+      
+      return hasDriver && hasDuration && hasDate && hasTime && hasReturnLocation;
+    }
+    
     return true;
   };
 
@@ -435,11 +488,25 @@ export default function BookingForm({ hotelData }) {
 
       {/* Form Content */}
       <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12">
-        {currentStep === 1 && (
+        {/* Step 1: Service Selection - Conditional based on bookingType */}
+        {currentStep === 1 && formData.bookingType === "airport" && (
           <Step1ServiceSelection formData={formData} updateFormData={updateFormData} hotelData={hotelData} />
         )}
-        {currentStep === 2 && (
+        {currentStep === 1 && formData.bookingType === "rental" && (
+          <Step1RentalSelection 
+            formData={formData} 
+            updateFormData={updateFormData} 
+            hotelData={hotelData}
+            onContinue={() => setCurrentStep(2)}
+          />
+        )}
+        
+        {/* Step 2: Date/Time for Airport OR Vehicle Selection for Rental */}
+        {currentStep === 2 && formData.bookingType === "airport" && (
           <Step2DateTime formData={formData} updateFormData={updateFormData} hotelData={hotelData} />
+        )}
+        {currentStep === 2 && formData.bookingType === "rental" && (
+          <Step2RentalVehicle formData={formData} updateFormData={updateFormData} hotelData={hotelData} />
         )}
         {currentStep === 3 && (
           <Step3PassengerDetails formData={formData} updateFormData={updateFormData} hotelData={hotelData} />
@@ -477,26 +544,20 @@ export default function BookingForm({ hotelData }) {
                 </button>
               )}
               <div className="flex-1"></div>
-              {currentStep === 2 && isNightReservation() ? (
-                <button onClick={handleWhatsAppRedirect} className="px-8 py-3 rounded-lg font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-xl flex items-center gap-2" style={{ backgroundColor: "#25D366" }}>
-                  <span>📱</span> Book via WhatsApp
-                </button>
-              ) : (
-                <button 
-                  onClick={currentStep === totalSteps ? handleCheckoutSubmission : nextStep}
-                  disabled={
-                    loading || 
-                    (currentStep === 1 && !isStep1Complete()) ||
-                    (currentStep === 2 && !isStep2Complete()) ||
-                    (currentStep === 3 && !isStep3Complete()) ||
-                    (currentStep === 4 && !isStep4Complete())
-                  }
-                  className="px-8 py-3 rounded-lg font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" 
-                  style={{ backgroundColor: hotelData.theme.accentColor, color: hotelData.theme.primaryColor }}
-                >
-                  {loading ? "Processing..." : (currentStep === totalSteps ? "Complete Booking" : "Continue →")}
-                </button>
-              )}
+              <button 
+                onClick={currentStep === totalSteps ? handleCheckoutSubmission : nextStep}
+                disabled={
+                  loading || 
+                  (currentStep === 1 && !isStep1Complete()) ||
+                  (currentStep === 2 && !isStep2Complete()) ||
+                  (currentStep === 3 && !isStep3Complete()) ||
+                  (currentStep === 4 && !isStep4Complete())
+                }
+                className="px-8 py-3 rounded-lg font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" 
+                style={{ backgroundColor: hotelData.theme.accentColor, color: hotelData.theme.primaryColor }}
+              >
+                {loading ? "Processing..." : (currentStep === totalSteps ? "Complete Booking" : "Continue →")}
+              </button>
             </div>
           </div>
         )}

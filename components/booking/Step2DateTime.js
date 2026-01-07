@@ -1,5 +1,7 @@
 "use client";
 
+import { isPickupUrgentNight, isReturnUrgentNight, isUrgentNightBooking } from '@/lib/whatsapp-utils';
+
 /**
  * Step 2: Date & Time Selection Component
  * Handles pickup/return date and time with validation
@@ -58,8 +60,21 @@ export default function Step2DateTime({ formData, updateFormData, hotelData }) {
     updateFormData("pickupTime", selectedTime);
   };
 
+  // Check if return datetime is valid (must be after pickup datetime)
+  const isReturnDateTimeValid = () => {
+    if (!formData.isRoundTrip || !formData.pickupDate || !formData.pickupTime || !formData.returnDate || !formData.returnTime) {
+      return true; // No validation if any field is missing
+    }
+
+    const pickupDateTime = new Date(formData.pickupDate + 'T' + formData.pickupTime);
+    const returnDateTime = new Date(formData.returnDate + 'T' + formData.returnTime);
+
+    return returnDateTime > pickupDateTime;
+  };
+
   const minTime = getMinTime();
   const timeIsInvalid = !isTimeValid();
+  const returnDateTimeIsInvalid = !isReturnDateTimeValid();
 
   return (
     <div className="space-y-8">
@@ -110,13 +125,25 @@ export default function Step2DateTime({ formData, updateFormData, hotelData }) {
         </div>
       )}
 
-      {isNightTime() && (
-        <div className="p-6 bg-amber-50 border-2 border-amber-200 rounded-xl">
-          <div className="flex items-start gap-4">
-            <div className="text-3xl">🌙</div>
-            <div>
-              <h3 className="font-bold text-amber-800 mb-2">Night Service (00:00 - 06:00)</h3>
-              <p className="text-amber-700 text-sm">For night hours, please contact via WhatsApp for manual confirmation.</p>
+      {/* Urgent Night Service Warning - Smart Combined */}
+      {(isPickupUrgentNight(formData) || isReturnUrgentNight(formData)) && (
+        <div className="p-5 bg-amber-50 border-2 border-amber-200 rounded-xl">
+          <div className="flex items-start gap-3">
+            <div className="text-2xl">🌙</div>
+            <div className="flex-1">
+              <h3 className="font-bold text-amber-800 mb-1">Urgent Night Service Booking</h3>
+              <div className="text-amber-700 text-sm space-y-1">
+                {!formData.isRoundTrip && (
+                  <p>Anda memesan untuk jam malam dengan waktu kurang dari 24 jam. Setelah pembayaran, mohon konfirmasi ketersediaan sopir via WhatsApp.</p>
+                )}
+                {formData.isRoundTrip && (
+                  <>
+                    {isPickupUrgentNight(formData) && <p>• <strong>Penjemputan:</strong> Jam malam, kurang dari 24 jam</p>}
+                    {isReturnUrgentNight(formData) && <p>• <strong>Kepulangan:</strong> Jam malam, kurang dari 24 jam</p>}
+                    <p className="mt-2">Setelah pembayaran, mohon konfirmasi ketersediaan sopir via WhatsApp.</p>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -165,8 +192,17 @@ export default function Step2DateTime({ formData, updateFormData, hotelData }) {
                   type="time" 
                   value={formData.returnTime} 
                   onChange={(e) => updateFormData("returnTime", e.target.value)} 
-                  className="w-full px-6 py-4 rounded-xl border-2 border-neutral-200 focus:border-amber-500 focus:outline-none transition-all text-lg" 
+                  className={`w-full px-6 py-4 rounded-xl border-2 focus:outline-none transition-all text-lg ${
+                    returnDateTimeIsInvalid
+                      ? 'border-red-500 bg-red-50'
+                      : 'border-neutral-200 focus:border-amber-500'
+                  }`}
                 />
+                {returnDateTimeIsInvalid && (
+                  <p className="text-xs text-red-600 font-semibold mt-2">
+                    ⚠️ Return time must be after pickup time
+                  </p>
+                )}
                 <p className="text-xs text-neutral-500 mt-2">
                   💡 Tip: Consider flight arrival + baggage claim time
                 </p>
