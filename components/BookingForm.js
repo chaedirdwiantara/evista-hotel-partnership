@@ -7,7 +7,6 @@ import PaymentWaiting from "./PaymentWaiting";
 import Step1ServiceSelection from "./booking/Step1ServiceSelection";
 import Step1RentalSelection from "./booking/Step1RentalSelection";
 import Step2DateTime from "./booking/Step2DateTime";
-import Step2RentalVehicle from "./booking/Step2RentalVehicle";
 import Step3PassengerDetails from "./booking/Step3PassengerDetails";
 import Step4Payment from "./booking/Step4Payment";
 
@@ -305,14 +304,19 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
 
   // Validate pickup time is at least 60 minutes from now
   const isPickupTimeValid = () => {
-    if (!formData.pickupTime || !formData.pickupDate) return false;
+    // Determine which date field to use based on booking type
+    const isRental = formData.bookingType === 'rental';
+    const dateField = isRental ? 'rentalDate' : 'pickupDate';
+    const currentDate = formData[dateField];
+    
+    if (!formData.pickupTime || !currentDate) return false;
     
     // Calculate minimum time
     const now = new Date();
     const minDateTime = new Date(now.getTime() + 60 * 60 * 1000);
     const minDate = minDateTime.toISOString().split("T")[0];
     
-    const selectedDate = new Date(formData.pickupDate + "T00:00:00");
+    const selectedDate = new Date(currentDate + "T00:00:00");
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -343,13 +347,21 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
   };
 
   const calculatePrice = () => {
-    if (formData.serviceType === "fixPrice" && formData.selectedRoute && formData.selectedVehicleClass) {
+    // Airport Transfer pricing
+    if (formData.bookingType === "airport" && formData.serviceType === "fixPrice" && formData.selectedRoute && formData.selectedVehicleClass) {
       const route = hotelData.routes.find(r => r.id === formData.selectedRoute);
       if (!route || !route.pricing) return 0;
       const pricing = route.pricing[formData.selectedVehicleClass];
       if (!pricing) return 0;
       return formData.isRoundTrip ? pricing.roundTrip : pricing.oneWay;
     }
+    
+    // Rental pricing
+    if (formData.bookingType === "rental" && formData.selectedVehicle && formData.rentalDuration) {
+      const { calculateRentalPrice } = require('@/lib/rental-pricing');
+      return calculateRentalPrice(formData.selectedVehicle.id, formData.rentalDuration, formData.withDriver);
+    }
+    
     return 0;
   };
 
@@ -368,35 +380,14 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
       return formData.selectedRoute && formData.selectedVehicleClass;
     }
     
-    // For rental service, check all required fields
-    if (formData.serviceType === "rental") {
-      const hasDriver = formData.withDriver !== null && formData.withDriver !== undefined;
-      const hasDuration = !!formData.rentalDuration;
-      const hasDate = !!formData.rentalDate;
-      const hasTime = !!formData.pickupTime;
-      const hasReturnLocation = !!formData.returnLocation;
+    // For rental bookings
+    if (formData.bookingType === "rental") {
+      const hasDriver = formData.withDriver === true || formData.withDriver === false;
+      const hasDuration = formData.rentalDuration;
+      const hasVehicle = formData.selectedVehicle;
+      const hasReturnLocation = formData.returnLocation;
       
-      // Validate pickup time is at least 60 mins from now if date is today
-      if (hasDate && hasTime) {
-        const selectedDate = new Date(formData.rentalDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        if (selectedDate.getTime() === today.getTime()) {
-          const [hour, min] = formData.pickupTime.split(':').map(Number);
-          const pickupDateTime = new Date();
-          pickupDateTime.setHours(hour, min, 0, 0);
-          
-          const minTime = new Date();
-          minTime.setMinutes(minTime.getMinutes() + 60);
-          
-          if (pickupDateTime < minTime) {
-            return false; // Time too soon
-          }
-        }
-      }
-      
-      return hasDriver && hasDuration && hasDate && hasTime && hasReturnLocation;
+      return hasDriver && hasDuration && hasVehicle && hasReturnLocation;
     }
     
     return true;
@@ -404,15 +395,20 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
 
   // Check if Step 2 is complete
   const isStep2Complete = () => {
-    // Must have pickup date and time
-    if (!formData.pickupDate || !formData.pickupTime) return false;
+    // Determine which date field to use based on booking type
+    const isRental = formData.bookingType === 'rental';
+    const dateField = isRental ? 'rentalDate' : 'pickupDate';
+    const currentDate = formData[dateField];
+    
+    // Must have date and time
+    if (!currentDate || !formData.pickupTime) return false;
     
     // If round trip, must have return date AND return time
     if (formData.isRoundTrip) {
       if (!formData.returnDate || !formData.returnTime) return false;
       
-      // Return date must be >= pickup date
-      if (new Date(formData.returnDate) < new Date(formData.pickupDate)) {
+      // Return date must be >= pickup/rental date
+      if (new Date(formData.returnDate) < new Date(currentDate)) {
         return false;
       }
     }
@@ -501,12 +497,9 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
           />
         )}
         
-        {/* Step 2: Date/Time for Airport OR Vehicle Selection for Rental */}
-        {currentStep === 2 && formData.bookingType === "airport" && (
+        {/* Step 2: Date/Time for BOTH Airport and Rental */}
+        {currentStep === 2 && (
           <Step2DateTime formData={formData} updateFormData={updateFormData} hotelData={hotelData} />
-        )}
-        {currentStep === 2 && formData.bookingType === "rental" && (
-          <Step2RentalVehicle formData={formData} updateFormData={updateFormData} hotelData={hotelData} />
         )}
         {currentStep === 3 && (
           <Step3PassengerDetails formData={formData} updateFormData={updateFormData} hotelData={hotelData} />

@@ -26,7 +26,10 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
       {/* Service Type Selection */}
       <div className="flex gap-4">
         <button 
-          onClick={() => updateFormData("serviceType", "fixPrice")} 
+          onClick={() => {
+            updateFormData("serviceType", "fixPrice");
+            updateFormData("bookingType", "airport");
+          }} 
           className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-300 ${formData.serviceType === "fixPrice" ? "shadow-lg scale-105" : "bg-neutral-100"}`} 
           style={{ 
             backgroundColor: formData.serviceType === "fixPrice" ? hotelData.theme.accentColor : undefined, 
@@ -37,7 +40,10 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
         </button>
         {hotelData.services.rental.enabled && (
           <button 
-            onClick={() => updateFormData("serviceType", "rental")} 
+            onClick={() => {
+              updateFormData("serviceType", "rental");
+              updateFormData("bookingType", "rental");
+            }} 
             className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-300 ${formData.serviceType === "rental" ? "shadow-lg scale-105" : "bg-neutral-100"}`} 
             style={{ 
               backgroundColor: formData.serviceType === "rental" ? hotelData.theme.accentColor : undefined, 

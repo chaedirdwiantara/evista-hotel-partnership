@@ -7,6 +7,11 @@ import { isPickupUrgentNight, isReturnUrgentNight, isUrgentNightBooking } from '
  * Handles pickup/return date and time with validation
  */
 export default function Step2DateTime({ formData, updateFormData, hotelData }) {
+  // Determine which date field to use based on booking type
+  const isRental = formData.bookingType === 'rental';
+  const dateField = isRental ? 'rentalDate' : 'pickupDate';
+  const currentDate = formData[dateField];
+  
   // Calculate minimum date and time (current time + 60 minutes)
   const now = new Date();
   const minDateTime = new Date(now.getTime() + 60 * 60 * 1000); // +60 minutes
@@ -14,9 +19,9 @@ export default function Step2DateTime({ formData, updateFormData, hotelData }) {
   
   // Calculate minimum time based on selected date
   const getMinTime = () => {
-    if (!formData.pickupDate) return "";
+    if (!currentDate) return "";
     
-    const selectedDate = new Date(formData.pickupDate + "T00:00:00");
+    const selectedDate = new Date(currentDate + "T00:00:00");
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -39,7 +44,7 @@ export default function Step2DateTime({ formData, updateFormData, hotelData }) {
 
   // Validate if selected time is valid
   const isTimeValid = () => {
-    if (!formData.pickupTime || !formData.pickupDate) return true;
+    if (!formData.pickupTime || !currentDate) return true;
     
     const minTime = getMinTime();
     if (!minTime) return true; // No restriction for future dates
@@ -62,11 +67,11 @@ export default function Step2DateTime({ formData, updateFormData, hotelData }) {
 
   // Check if return datetime is valid (must be after pickup datetime)
   const isReturnDateTimeValid = () => {
-    if (!formData.isRoundTrip || !formData.pickupDate || !formData.pickupTime || !formData.returnDate || !formData.returnTime) {
+    if (!formData.isRoundTrip || !currentDate || !formData.pickupTime || !formData.returnDate || !formData.returnTime) {
       return true; // No validation if any field is missing
     }
 
-    const pickupDateTime = new Date(formData.pickupDate + 'T' + formData.pickupTime);
+    const pickupDateTime = new Date(currentDate + 'T' + formData.pickupTime);
     const returnDateTime = new Date(formData.returnDate + 'T' + formData.returnTime);
 
     return returnDateTime > pickupDateTime;
@@ -81,12 +86,14 @@ export default function Step2DateTime({ formData, updateFormData, hotelData }) {
       <h2 className="text-3xl font-bold mb-6" style={{ color: hotelData.theme.primaryColor }}>Choose Date & Time</h2>
       <div className="grid md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-semibold text-neutral-700 mb-3">Pickup Date</label>
+          <label className="block text-sm font-semibold text-neutral-700 mb-3">
+            {isRental ? 'Rental Date' : 'Pickup Date'}
+          </label>
           <input 
             type="date" 
             min={minDate} 
-            value={formData.pickupDate} 
-            onChange={(e) => updateFormData("pickupDate", e.target.value)} 
+            value={currentDate || ''} 
+            onChange={(e) => updateFormData(dateField, e.target.value)} 
             className="w-full px-6 py-4 rounded-xl border-2 border-neutral-200 focus:border-amber-500 focus:outline-none transition-all text-lg" 
           />
         </div>

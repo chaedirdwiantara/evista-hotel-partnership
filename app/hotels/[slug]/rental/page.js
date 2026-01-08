@@ -1,4 +1,4 @@
-import { getHotelBySlug } from "@/lib/hotel-config";
+import { getHotelConfig } from "@/lib/hotel-config";
 import RentalBookingPageContent from "./RentalBookingPageContent";
 
 // Generate static params for all hotels
@@ -10,7 +10,7 @@ export async function generateStaticParams() {
 }
 
 export default function RentalBookingPage({ params }) {
-  const hotelData = getHotelBySlug(params.slug);
+  const hotelData = getHotelConfig(params.slug);
 
   if (!hotelData) {
     return (
