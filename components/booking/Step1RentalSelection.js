@@ -45,7 +45,7 @@ export default function Step1RentalSelection({ formData, updateFormData, hotelDa
             color: formData.serviceType === "fixPrice" ? hotelData.theme.primaryColor : "#666" 
           }}
         >
-          ✈️ Airport Transfer
+          📋 Reservation
         </button>
         <button 
           onClick={() => {
