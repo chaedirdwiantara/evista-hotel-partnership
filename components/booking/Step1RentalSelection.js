@@ -97,6 +97,17 @@ export default function Step1RentalSelection({ formData, updateFormData, hotelDa
         </div>
       </div>
 
+      {/* Pickup Location */}
+      <div>
+        <label className="block text-sm font-semibold text-neutral-700 mb-3">
+          Pickup Location <span className="text-red-500">*</span>
+        </label>
+        <div className="w-full px-6 py-4 rounded-xl border-2 border-neutral-200 bg-neutral-50 text-neutral-600 text-lg flex items-center gap-3">
+          <span>📍</span>
+          <span>{hotelData.name}</span>
+        </div>
+      </div>
+
       {/* Rental Duration */}
       <div>
         <label className="block text-sm font-semibold text-neutral-700 mb-3">

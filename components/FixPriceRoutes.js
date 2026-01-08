@@ -37,7 +37,7 @@ export default function FixPriceRoutes({ routes, accentColor, primaryColor }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-[820px] mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
           {routes.map((route, index) => (
             <div
               key={route.id}

@@ -63,7 +63,9 @@ function VehicleCard({ vehicle, theme, index, onBook }) {
         delay: index * 0.1 
       }}
       viewport={{ once: true }}
-      className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+      onClick={onBook}
+      role="button"
+      className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 cursor-pointer group"
     >
       {/* Vehicle Image */}
       <div className="aspect-video w-full relative overflow-hidden bg-gradient-to-br from-neutral-100 to-neutral-50">

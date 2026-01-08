@@ -54,36 +54,50 @@ export default function HotelPageContent({ hotelData }) {
         }`}
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          {/* Partnership Logo - Dual Brand */}
-          <Link href="/" className="flex items-center gap-4 group">
-            {/* Hotel Logo */}
-            <div className="relative h-10 w-32 transition-opacity duration-300">
+          {/* Partnership Logo - Dual Brand with Enhanced Design */}
+          <Link href="/" className="flex items-center gap-5 group">
+            {/* Hotel Icon */}
+            <div className="relative h-12 w-12 transition-all duration-300 group-hover:scale-110">
+              <div className="absolute inset-0 bg-white rounded-xl shadow-md group-hover:shadow-xl transition-shadow duration-300" />
               <Image
-                src={hotelData.assets.logo}
+                src={hotelData.assets.icon || hotelData.assets.logo}
                 alt={hotelData.name}
                 fill
-                className="object-contain"
+                className="object-contain p-1.5 rounded-xl"
                 priority
               />
             </div>
             
-            {/* Partnership Separator */}
-            <span 
-              className="text-2xl font-light transition-colors duration-300"
-              style={{ color: scrolled ? hotelData.theme.accentColor : "#ffffff" }}
-            >
-              ×
-            </span>
+            {/* Partnership Separator with Glow */}
+            <div className="relative">
+              <span 
+                className="text-2xl font-light transition-all duration-300 relative z-10"
+                style={{ 
+                  color: scrolled ? hotelData.theme.accentColor : "#ffffff",
+                  textShadow: scrolled ? 'none' : '0 0 20px rgba(212, 175, 55, 0.5)'
+                }}
+              >
+                ×
+              </span>
+            </div>
             
-            {/* Evista Logo */}
-            <div className="relative h-10 w-24 transition-opacity duration-300">
+            {/* Evista Icon */}
+            <div className="relative h-12 w-12 transition-all duration-300 group-hover:scale-110">
+              <div className="absolute inset-0 bg-white rounded-xl shadow-md group-hover:shadow-xl transition-shadow duration-300" />
               <Image
-                src={hotelData.assets.evistaLogo}
+                src={hotelData.assets.evistaIcon || hotelData.assets.evistaLogo}
                 alt="Evista"
                 fill
-                className="object-contain"
+                className="object-contain p-1.5 rounded-xl"
                 priority
               />
+            </div>
+
+            {/* Partnership Label */}
+            <div className={`hidden lg:block transition-opacity duration-300 ${scrolled ? 'opacity-100' : 'opacity-80'}`}>
+              <p className={`text-xs font-semibold uppercase tracking-wider ${scrolled ? 'text-neutral-600' : 'text-white/90'}`}>
+                Partnership
+              </p>
             </div>
           </Link>
 
@@ -214,7 +228,7 @@ export default function HotelPageContent({ hotelData }) {
       {/* Fleet Showcase Section */}
       {/* Fleet Showcase Section */}
       <section id="fleet">
-        <FleetShowcase hotelData={hotelData} />
+        <FleetShowcase hotelData={hotelData} onBook={scrollToBooking} />
       </section>
 
       {/* Services Section */}
