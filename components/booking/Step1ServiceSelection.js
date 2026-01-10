@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from 'react';
 import VehicleSelector from './VehicleSelector';
+import ManualDestinationInput from '../ManualDestinationInput';
 
 /**
  * Step 1: Service Selection Component
@@ -18,6 +20,7 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
   };
 
   const currentPrice = getCurrentPrice();
+  const [showManualDestination, setShowManualDestination] = useState(false);
 
   return (
     <div className="space-y-8">
@@ -231,6 +234,71 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
               </div>
             </div>
           )}
+          
+          {/* OR Divider */}
+          <div className="mt-8 mb-6 flex items-center gap-4">
+            <div className="flex-1 h-px bg-neutral-200"></div>
+            <span className="text-neutral-400 font-medium text-sm">OR</span>
+            <div className="flex-1 h-px bg-neutral-200"></div>
+          </div>
+
+          {/* Manual Destination Section */}
+          <div>
+            {!showManualDestination ? (
+              <button
+                onClick={() => setShowManualDestination(true)}
+                type="button"
+                className="w-full group relative bg-gradient-to-br from-white to-neutral-50 rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 border-2 border-dashed border-neutral-300 hover:border-amber-400 p-6"
+              >
+                <div className="text-center">
+                  <div className="text-4xl mb-3 group-hover:scale-110 transition-transform duration-300">
+                    📍
+                  </div>
+                  <h4 className="text-lg font-bold mb-2" style={{ color: hotelData.theme.primaryColor }}>
+                    Search Other Destinations
+                  </h4>
+                  <p className="text-sm text-neutral-600">
+                    Can't find your route? Search manually
+                  </p>
+                </div>
+              </button>
+            ) : (
+              <div className="bg-gradient-to-br from-neutral-50 to-white rounded-xl shadow-md border-2 border-neutral-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h4 className="text-lg font-bold" style={{ color: hotelData.theme.primaryColor }}>
+                      Manual Destination
+                    </h4>
+                    <p className="text-sm text-neutral-600">
+                      Search for any location
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowManualDestination(false)}
+                    type="button"
+                    className="text-neutral-400 hover:text-neutral-600 transition-colors p-1"
+                    title="Back to fixed routes"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <ManualDestinationInput
+                  onDestinationSelect={(destination) => {
+                    if (destination) {
+                      // TODO: Handle manual destination selection
+                      // updateFormData("manualDestination", destination);
+                      console.log("Selected destination:", destination);
+                    }
+                  }}
+                  accentColor={hotelData.theme.accentColor}
+                  primaryColor={hotelData.theme.primaryColor}
+                />
+              </div>
+            )}
+          </div>
         </div>
       )}
 
