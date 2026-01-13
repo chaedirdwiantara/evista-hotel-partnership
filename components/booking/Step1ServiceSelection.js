@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import VehicleSelector from './VehicleSelector';
 import ManualDestinationInput from '../ManualDestinationInput';
+import { selectPickupLocation, selectDestination, setRoundTrip, submitTrip, getCarList } from '@/lib/manual-destination-api';
 
 /**
  * Step 1: Service Selection Component
@@ -20,7 +21,149 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
   };
 
   const currentPrice = getCurrentPrice();
-  const [showManualDestination, setShowManualDestination] = useState(false);
+  
+  // Manual destination states
+  const [availableCars, setAvailableCars] = useState([]);
+  const [isLoadingCars, setIsLoadingCars] = useState(false);
+  const [manualDestinationError, setManualDestinationError] = useState(null);
+  
+  // Track which route selection type is active: 'fixed' | 'manual' | null
+  const routeSelectionType = formData.selectedRoute ? 'fixed' : (formData.manualDestination ? 'manual' : null);
+
+  // Handle manual destination selection
+  const handleManualDestinationSelect = async (destination) => {
+    console.log('[Step1] handleManualDestinationSelect called with:', destination);
+    
+    // Handle clear selection (when destination is null)
+    if (!destination) {
+      console.log('[Manual Destination] Clearing selection');
+      updateFormData('manualDestination', null);
+      updateFormData('selectedVehicleClass', null);
+      updateFormData('selectedVehicle', null);
+      updateFormData('backendCarData', null);
+      setAvailableCars([]);
+      setManualDestinationError(null);
+      return; // Exit early
+    }
+    
+    try {
+      setIsLoadingCars(true);
+      setManualDestinationError(null);
+
+      // Step 0: Set pickup location to hotel (CRITICAL: Must be done first!)
+      console.log('[Manual Destination] Setting pickup location to hotel:', hotelData.name);
+      
+      // Get hotel pickup coordinates from config
+      // Classic Hotel coordinates from hotel-config.js
+      const hotelPickupLocation = {
+        lat: -6.1696,
+        lng: 106.8349,
+        label: hotelData.name || 'Classic Hotel',
+        name: hotelData.name || 'Classic Hotel',
+        address: 'Jl. K.H. Samanhudi No. 43-45, Pasar Baru, Jakarta Pusat',
+      };
+      
+      await selectPickupLocation(hotelPickupLocation, 'later');
+      console.log('[Manual Destination] Hotel pickup location set successfully');
+
+      // Step 1: Select destination - creates/updates draft order
+      console.log('[Manual Destination] Selecting destination:', destination);
+      await selectDestination(destination, 'later');
+
+      // Step 2: Set round trip if needed
+      if (formData.isRoundTrip) {
+        console.log('[Manual Destination] Setting round trip mode');
+        await setRoundTrip(true);
+      } else {
+        console.log('[Manual Destination] Setting one-way trip mode');
+        await setRoundTrip(false);
+      }
+
+      // Step 3: Submit trip with pickup time (use current time + 2 hours as default)
+      const defaultPickupTime = new Date();
+      defaultPickupTime.setHours(defaultPickupTime.getHours() + 2);
+      const pickupAt = defaultPickupTime.toISOString().slice(0, 19).replace('T', ' ');
+      
+      console.log('[Manual Destination] Submitting trip with pickup time:', pickupAt);
+      await submitTrip({
+        orderType: 'later',
+        pickupAt: pickupAt,
+      });
+
+      // Step 4: Get available cars with pricing
+      console.log('[Manual Destination] Fetching available cars...');
+      const cars = await getCarList('later');
+      console.log('[Manual Destination] Received cars:', cars);
+      
+      setAvailableCars(cars);
+      
+      // Clear fixed route selection and reset vehicle selection
+      updateFormData('selectedRoute', null);
+      updateFormData('selectedVehicleClass', null);
+      updateFormData('selectedVehicle', null);
+      
+      // Update form data with manual destination
+      updateFormData('manualDestination', destination);
+      
+    } catch (error) {
+      console.error('[Manual Destination] Error:', error);
+      setManualDestinationError(error.message || 'Failed to load vehicles. Please try again.');
+      setAvailableCars([]);
+    } finally {
+      setIsLoadingCars(false);
+    }
+  };
+
+  // Handle fixed route selection - clear manual destination state
+  const handleFixedRouteSelect = (routeId) => {
+    // Clear manual destination data
+    updateFormData('manualDestination', null);
+    updateFormData('backendCarData', null);
+    updateFormData('selectedVehicleClass', null);
+    updateFormData('selectedVehicle', null);
+    setAvailableCars([]);
+    setManualDestinationError(null);
+    
+    // Set the selected fixed route
+    updateFormData('selectedRoute', routeId);
+  };
+
+  // Watch for round trip changes when using manual destination
+  useEffect(() => {
+    // Only re-fetch if we have a manual destination and cars already loaded
+    if (formData.manualDestination && availableCars.length > 0) {
+      const updateRoundTrip = async () => {
+        try {
+          setIsLoadingCars(true);
+          console.log('[Manual Destination] Round trip changed, updating...');
+          
+          // Update round trip status
+          await setRoundTrip(formData.isRoundTrip);
+          
+          // Re-fetch car list with updated pricing
+          const cars = await getCarList('later');
+          setAvailableCars(cars);
+          
+          // UPDATE: If user had selected a vehicle, update backendCarData with new pricing
+          if (formData.selectedVehicleClass) {
+            const updatedCar = cars.find(c => c.id === formData.selectedVehicleClass);
+            if (updatedCar) {
+              console.log('[Manual Destination] Updating backendCarData with new price:', updatedCar.start_from_price);
+              updateFormData('backendCarData', updatedCar);
+            }
+          }
+          
+        } catch (error) {
+          console.error('[Manual Destination] Failed to update round trip:', error);
+        } finally {
+          setIsLoadingCars(false);
+        }
+      };
+      
+      updateRoundTrip();
+    }
+  }, [formData.isRoundTrip, formData.manualDestination, availableCars.length]); // Fixed dependency array
+
 
   return (
     <div className="space-y-8">
@@ -66,7 +209,7 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
             {hotelData.routes.map((route) => (
               <button 
                 key={route.id} 
-                onClick={() => updateFormData("selectedRoute", route.id)} 
+                onClick={() => handleFixedRouteSelect(route.id)} 
                 className={`w-full p-5 rounded-xl text-left transition-all duration-300 border-2 ${
                   formData.selectedRoute === route.id 
                     ? "shadow-lg scale-[1.01] bg-amber-50/50" 
@@ -91,9 +234,65 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
               </button>
             ))}
           </div>
+          
+          {/* OR Divider */}
+          <div className="mt-8 mb-6 flex items-center gap-4">
+            <div className="flex-1 h-px bg-neutral-200"></div>
+            <span className="text-neutral-400 font-medium text-sm">OR</span>
+            <div className="flex-1 h-px bg-neutral-200"></div>
+          </div>
 
-          {/* Vehicle Class Selection */}
-          {formData.selectedRoute && hotelData.vehicleClasses && (
+          {/* Manual Destination Section - Always Visible */}
+          <div className="bg-gradient-to-br from-neutral-50 to-white rounded-xl shadow-md border-2 border-neutral-200 p-6">
+            <div className="mb-4">
+              <h4 className="text-lg font-bold mb-1" style={{ color: hotelData.theme.primaryColor }}>
+                📍 Search Other Destinations
+              </h4>
+              <p className="text-sm text-neutral-600">
+                Can't find your route? Search manually
+              </p>
+            </div>
+            
+            <ManualDestinationInput
+              onDestinationSelect={handleManualDestinationSelect}
+              onInputFocus={() => {
+                // Clear fixed route selection when user focuses manual input
+                updateFormData('selectedRoute', null);
+                updateFormData('selectedVehicleClass', null);
+                updateFormData('selectedVehicle', null);
+              }}
+              primaryColor={hotelData.theme.primaryColor}
+              accentColor={hotelData.theme.accentColor}
+            />
+            
+            {/* Loading State */}
+            {isLoadingCars && (
+              <div className="mt-6 p-8 bg-neutral-50 rounded-xl text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: hotelData.theme.accentColor }}></div>
+                <p className="mt-4 text-neutral-600">Loading available vehicles...</p>
+              </div>
+            )}
+            
+            {/* Error State */}
+            {manualDestinationError && (
+              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-red-600 text-sm">{manualDestinationError}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================= */}
+      {/* SHARED COMPONENTS SECTION */}
+      {/* Appears after EITHER Fixed Route OR Manual Destination is selected */}
+      {/* ========================= */}
+      
+      {routeSelectionType && formData.serviceType === "fixPrice" && (
+        <div className="space-y-8 animate-slideDown">
+          
+          {/* Vehicle Class Selection - Unified for both Fixed and Manual */}
+          {routeSelectionType === 'fixed' && hotelData.vehicleClasses && (
             <div className="space-y-3">
               <h3 className="font-semibold text-neutral-700">Select Vehicle Class</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -139,8 +338,61 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
             </div>
           )}
 
-          {/* Vehicle Selection - Shows after Vehicle Class is selected */}
-          {formData.selectedVehicleClass && hotelData.fleet && (
+          {/* Vehicle Class Selection for Manual Destination (Backend Cars) */}
+          {routeSelectionType === 'manual' && availableCars.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="font-semibold text-neutral-700">Select Vehicle Class</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {availableCars.map((car) => (
+                  <button
+                    key={car.id}
+                    type="button"
+                    onClick={() => {
+                      updateFormData('selectedVehicleClass', car.id);
+                      updateFormData('backendCarData', car);
+                    }}
+                    className={`p-5 rounded-xl text-left transition-all duration-300 border-2 ${
+                      formData.selectedVehicleClass === car.id
+                        ? 'shadow-lg scale-[1.02] bg-gradient-to-br from-amber-50 to-white'
+                        : 'border-neutral-200 hover:border-neutral-300 bg-white'
+                    }`}
+                    style={{ borderColor: formData.selectedVehicleClass === car.id ? hotelData.theme.accentColor : undefined }}
+                  >
+                    <div className="flex items-start gap-4">
+                      {car.media?.url && (
+                        <img 
+                          src={car.media.url} 
+                          alt={car.typename} 
+                          className="w-16 h-16 object-contain"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <h5 className="font-bold text-neutral-900 mb-1">{car.typename}</h5>
+                        <p className="text-xs text-neutral-600 mb-2">{car.brand}</p>
+                        <p className="text-sm font-semibold mb-1" style={{ color: hotelData.theme.accentColor }}>
+                          Rp {(car.start_from_price || 0).toLocaleString('id-ID')}
+                        </p>
+                        <p className="text-xs text-neutral-500">
+                          {car.distance?.toFixed(1)} km
+                        </p>
+                      </div>
+                      {formData.selectedVehicleClass === car.id && (
+                        <div 
+                          className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0"
+                          style={{ backgroundColor: hotelData.theme.accentColor }}
+                        >
+                          ✓
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Optional Vehicle Selection - Only for Fixed Routes */}
+          {routeSelectionType === 'fixed' && formData.selectedVehicleClass && hotelData.fleet && (
             <VehicleSelector
               selectedVehicleClass={formData.selectedVehicleClass}
               selectedVehicle={formData.selectedVehicle}
@@ -150,13 +402,14 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
             />
           )}
 
-          {/* Trip Type Selection - Elegant Radio Buttons */}
-          {formData.selectedRoute && formData.selectedVehicleClass && (
+          {/* Trip Type Selection - Shared for Both */}
+          {formData.selectedVehicleClass && (
             <div className="space-y-3">
               <h3 className="font-semibold text-neutral-700">Trip Type</h3>
               <div className="bg-neutral-100 p-1.5 rounded-xl flex gap-2">
                 {/* One Way Option */}
                 <button
+                  type="button"
                   onClick={() => updateFormData("isRoundTrip", false)}
                   className={`flex-1 py-4 px-6 rounded-lg font-semibold transition-all duration-300 relative ${
                     !formData.isRoundTrip 
@@ -185,6 +438,7 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
 
                 {/* Round Trip Option */}
                 <button
+                  type="button"
                   onClick={() => updateFormData("isRoundTrip", true)}
                   className={`flex-1 py-4 px-6 rounded-lg font-semibold transition-all duration-300 relative ${
                     formData.isRoundTrip 
@@ -214,92 +468,51 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
             </div>
           )}
 
-          {/* Price Summary */}
-          {currentPrice && (
-            <div className="p-6 bg-gradient-to-br from-neutral-900 to-neutral-800 rounded-2xl text-white">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-sm text-neutral-400 mb-1">
-                    {formData.isRoundTrip ? "Round Trip" : "One Way"} • {hotelData.vehicleClasses.find(v => v.id === formData.selectedVehicleClass)?.name}
-                  </p>
-                  <p className="text-sm text-neutral-500">
-                    {hotelData.routes.find(r => r.id === formData.selectedRoute)?.name}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-3xl font-bold" style={{ color: hotelData.theme.accentColor }}>
-                    Rp {currentPrice.toLocaleString("id-ID")}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* OR Divider */}
-          <div className="mt-8 mb-6 flex items-center gap-4">
-            <div className="flex-1 h-px bg-neutral-200"></div>
-            <span className="text-neutral-400 font-medium text-sm">OR</span>
-            <div className="flex-1 h-px bg-neutral-200"></div>
-          </div>
-
-          {/* Manual Destination Section */}
-          <div>
-            {!showManualDestination ? (
-              <button
-                onClick={() => setShowManualDestination(true)}
-                type="button"
-                className="w-full group relative bg-gradient-to-br from-white to-neutral-50 rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 border-2 border-dashed border-neutral-300 hover:border-amber-400 p-6"
-              >
-                <div className="text-center">
-                  <div className="text-4xl mb-3 group-hover:scale-110 transition-transform duration-300">
-                    📍
-                  </div>
-                  <h4 className="text-lg font-bold mb-2" style={{ color: hotelData.theme.primaryColor }}>
-                    Search Other Destinations
-                  </h4>
-                  <p className="text-sm text-neutral-600">
-                    Can't find your route? Search manually
-                  </p>
-                </div>
-              </button>
-            ) : (
-              <div className="bg-gradient-to-br from-neutral-50 to-white rounded-xl shadow-md border-2 border-neutral-200 p-6">
-                <div className="flex items-center justify-between mb-4">
+          {/* Price Summary - Shared for Both */}
+          {currentPrice && routeSelectionType === 'fixed' && (
+              <div className="p-6 bg-gradient-to-br from-neutral-900 to-neutral-800 rounded-2xl text-white">
+                <div className="flex justify-between items-center">
                   <div>
-                    <h4 className="text-lg font-bold" style={{ color: hotelData.theme.primaryColor }}>
-                      Manual Destination
-                    </h4>
-                    <p className="text-sm text-neutral-600">
-                      Search for any location
+                    <p className="text-sm text-neutral-400 mb-1">
+                      {formData.isRoundTrip ? "Round Trip" : "One Way"} • {hotelData.vehicleClasses.find(v => v.id === formData.selectedVehicleClass)?.name}
+                    </p>
+                    <p className="text-sm text-neutral-500">
+                      {hotelData.routes.find(r => r.id === formData.selectedRoute)?.name}
                     </p>
                   </div>
-                  <button
-                    onClick={() => setShowManualDestination(false)}
-                    type="button"
-                    className="text-neutral-400 hover:text-neutral-600 transition-colors p-1"
-                    title="Back to fixed routes"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+                  <div className="text-right">
+                    <p className="text-3xl font-bold" style={{ color: hotelData.theme.accentColor }}>
+                      Rp {currentPrice.toLocaleString("id-ID")}
+                    </p>
+                  </div>
                 </div>
-                
-                <ManualDestinationInput
-                  onDestinationSelect={(destination) => {
-                    if (destination) {
-                      // TODO: Handle manual destination selection
-                      // updateFormData("manualDestination", destination);
-                      console.log("Selected destination:", destination);
-                    }
-                  }}
-                  accentColor={hotelData.theme.accentColor}
-                  primaryColor={hotelData.theme.primaryColor}
-                />
+              </div>
+            )}
+
+            {/* Price Summary for Manual Destination */}
+            {formData.backendCarData && routeSelectionType === 'manual' && (
+              <div className="p-6 bg-gradient-to-br from-neutral-900 to-neutral-800 rounded-2xl text-white">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm text-neutral-400 mb-1">
+                      {formData.isRoundTrip ? "Round Trip" : "One Way"} • {formData.backendCarData.typename}
+                    </p>
+                    <p className="text-sm text-neutral-500">
+                      {formData.manualDestination?.name}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-3xl font-bold" style={{ color: hotelData.theme.accentColor }}>
+                      Rp {(formData.backendCarData.start_from_price || 0).toLocaleString("id-ID")}
+                    </p>
+                    <p className="text-xs text-neutral-400 mt-1">
+                      {formData.backendCarData.distance?.toFixed(1)} km
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
           </div>
-        </div>
       )}
 
       {/* Car Rental Fields */}

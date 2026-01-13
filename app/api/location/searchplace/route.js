@@ -23,7 +23,7 @@ export async function GET(request) {
       );
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_EVISTA_BACKEND_URL || 'https://bhisa-dev-v1.evista.id';
+    const backendUrl = process.env.NEXT_PUBLIC_EVISTA_API_URL || process.env.NEXT_PUBLIC_EVISTA_BACKEND_URL || 'https://bhisa-dev-v1.evista.id';
     
     // Debug: Log what we're sending to backend
     console.log('[DEBUG] Searchplace - Token received:', token?.substring(0, 50) + '...');

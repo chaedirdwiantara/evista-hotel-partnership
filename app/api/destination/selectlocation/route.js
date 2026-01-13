@@ -23,7 +23,7 @@ export async function POST(request) {
       );
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_EVISTA_BACKEND_URL || 'https://bhisa-dev-v1.evista.id';
+    const backendUrl = process.env.NEXT_PUBLIC_EVISTA_API_URL || process.env.NEXT_PUBLIC_EVISTA_BACKEND_URL || 'https://bhisa-dev-v1.evista.id';
     
     const response = await fetch(
       `${backendUrl}/api/destination/selectlocation`,

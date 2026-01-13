@@ -347,13 +347,19 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
   };
 
   const calculatePrice = () => {
-    // Airport Transfer pricing
+    // Airport Transfer - Fixed Route pricing
     if (formData.bookingType === "airport" && formData.serviceType === "fixPrice" && formData.selectedRoute && formData.selectedVehicleClass) {
       const route = hotelData.routes.find(r => r.id === formData.selectedRoute);
       if (!route || !route.pricing) return 0;
       const pricing = route.pricing[formData.selectedVehicleClass];
       if (!pricing) return 0;
       return formData.isRoundTrip ? pricing.roundTrip : pricing.oneWay;
+    }
+    
+    // Airport Transfer - Manual Destination pricing
+    if (formData.bookingType === "airport" && formData.serviceType === "fixPrice" && formData.manualDestination && formData.backendCarData) {
+      // Price comes from backend API response
+      return formData.backendCarData.start_from_price || 0;
     }
     
     // Rental pricing
@@ -377,7 +383,11 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
   // Check if Step 1 is complete
   const isStep1Complete = () => {
     if (formData.serviceType === "fixPrice") {
-      return formData.selectedRoute && formData.selectedVehicleClass;
+      // Check for EITHER fixed route OR manual destination
+      const hasFixedRoute = formData.selectedRoute && formData.selectedVehicleClass;
+      const hasManualDestination = formData.manualDestination && formData.selectedVehicleClass;
+      
+      return hasFixedRoute || hasManualDestination;
     }
     
     // For rental bookings

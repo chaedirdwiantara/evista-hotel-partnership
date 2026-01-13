@@ -8,9 +8,10 @@ import { searchPlace } from '@/lib/manual-destination-api';
  * Provides autocomplete search for manual destination selection
  */
 export default function ManualDestinationInput({ 
-  onDestinationSelect, 
-  accentColor, 
-  primaryColor,
+  onDestinationSelect,
+  onInputFocus, // New: callback when input is focused
+  primaryColor = "#1a1a1a",
+  accentColor = "#d4af37",
   className = "" 
 }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,8 +19,10 @@ export default function ManualDestinationInput({
   const [isSearching, setIsSearching] = useState(false);
   const [selectedDestination, setSelectedDestination] = useState(null);
   const [showResults, setShowResults] = useState(false);
+  const [isFocused, setIsFocused] = useState(false); // Track focus state for border color
   const searchTimeoutRef = useRef(null);
   const inputRef = useRef(null);
+  const containerRef = useRef(null); // Ref for entire component container
 
   // Debounced search
   useEffect(() => {
@@ -58,13 +61,17 @@ export default function ManualDestinationInput({
 
   // Handle destination selection
   const handleSelectDestination = (destination) => {
+    console.log('[ManualDestinationInput] Destination selected:', destination);
     setSelectedDestination(destination);
     setSearchQuery(destination.name);
     setShowResults(false);
     
     // Notify parent component
     if (onDestinationSelect) {
+      console.log('[ManualDestinationInput] Calling onDestinationSelect callback');
       onDestinationSelect(destination);
+    } else {
+      console.warn('[ManualDestinationInput] onDestinationSelect callback is not defined!');
     }
   };
 
@@ -88,7 +95,8 @@ export default function ManualDestinationInput({
   // Close results when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (inputRef.current && !inputRef.current.contains(event.target)) {
+      // Check if click is outside the ENTIRE container (input + dropdown)
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
         setShowResults(false);
       }
     };
@@ -98,7 +106,7 @@ export default function ManualDestinationInput({
   }, []);
 
   return (
-    <div className={`relative ${className}`}>
+    <div ref={containerRef} className={`relative ${className}`}>
       {/* Search Input */}
       <div className="relative">
         <div className="relative">
@@ -110,9 +118,24 @@ export default function ManualDestinationInput({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={() => searchResults.length > 0 && setShowResults(true)}
+            onFocus={() => {
+              setIsFocused(true);
+              // Show results if available
+              if (searchResults.length > 0) {
+                setShowResults(true);
+              }
+              // Notify parent that input was focused (to clear fixed route selection)
+              if (onInputFocus) {
+                onInputFocus();
+              }
+            }}
+            onBlur={() => setIsFocused(false)}
             placeholder="Search destination (e.g., Stasiun Kereta Cepat)"
-            className="w-full pl-12 pr-12 py-4 rounded-xl border-2 border-neutral-200 focus:border-amber-500 focus:outline-none transition-all text-base"
+            className="w-full pl-12 pr-12 py-4 rounded-xl border-2 transition-all text-base"
+            style={{
+              borderColor: isFocused ? (accentColor || '#D4AF37') : '#e5e5e5',
+              outline: 'none'
+            }}
             disabled={selectedDestination !== null}
           />
           
@@ -149,7 +172,10 @@ export default function ManualDestinationInput({
           {searchResults.map((result, index) => (
             <button
               key={result.place_id || index}
-              onClick={() => handleSelectDestination(result)}
+              onClick={() => {
+                console.log('[DIRECT CLICK] Button clicked!', result);
+                handleSelectDestination(result);
+              }}
               className="w-full px-6 py-4 text-left border-b border-neutral-100 hover:bg-amber-50 transition-colors group"
             >
               <div className="flex items-start gap-3">
@@ -192,7 +218,13 @@ export default function ManualDestinationInput({
           }}
         >
           <div className="flex items-start gap-3">
-            <span className="text-xl mt-0.5">✓</span>
+            {/* Checkmark Icon - Consistent with other selections */}
+            <div 
+              className="w-6 h-6 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0"
+              style={{ backgroundColor: accentColor || '#D4AF37' }}
+            >
+              ✓
+            </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-neutral-600 mb-1">
                 Selected Destination:
