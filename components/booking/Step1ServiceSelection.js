@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Car, CalendarCheck } from 'lucide-react';
 import VehicleSelector from './VehicleSelector';
+import RouteSelector from './RouteSelector';
 import ManualDestinationInput from '../ManualDestinationInput';
 import { selectPickupLocation, selectDestination, setRoundTrip, submitTrip, getCarList } from '@/lib/manual-destination-api';
 import { EvistaAPI } from '@/lib/evista-api';
@@ -253,36 +254,15 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
 
       {formData.serviceType === "fixPrice" && (
         <div className="space-y-6">
-          {/* Route Selection */}
+          {/* Route Selection - Premium Dropdown */}
           <div className="space-y-3">
             <h3 className="font-semibold text-neutral-700">Select Route</h3>
-            {hotelData.routes.map((route) => (
-              <button 
-                key={route.id} 
-                onClick={() => handleFixedRouteSelect(route.id)} 
-                className={`w-full p-5 rounded-xl text-left transition-all duration-300 border-2 ${
-                  formData.selectedRoute === route.id 
-                    ? "shadow-lg scale-[1.01] bg-amber-50/50" 
-                    : "border-neutral-200 hover:border-neutral-300"
-                }`} 
-                style={{ borderColor: formData.selectedRoute === route.id ? hotelData.theme.accentColor : undefined }}
-              >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h4 className="font-bold text-lg" style={{ color: hotelData.theme.primaryColor }}>{route.name}</h4>
-                    <p className="text-sm text-neutral-500">{route.distance} km • {route.estimatedDuration} min</p>
-                  </div>
-                  {formData.selectedRoute === route.id && (
-                    <div 
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-sm"
-                      style={{ backgroundColor: hotelData.theme.accentColor }}
-                    >
-                      ✓
-                    </div>
-                  )}
-                </div>
-              </button>
-            ))}
+            <RouteSelector
+              routes={hotelData.routes}
+              selectedRouteId={formData.selectedRoute}
+              onRouteSelect={handleFixedRouteSelect}
+              hotelData={hotelData}
+            />
           </div>
           
           {/* OR Divider */}
