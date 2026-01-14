@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { EvistaAPI } from "@/lib/evista-api";
+import { selectPickupLocation, selectDestination } from "@/lib/manual-destination-api";
 import { isUrgentNightBooking, buildUrgentNightMessage, sendWhatsAppMessage, sendAdminAutoNotification } from "@/lib/whatsapp-utils";
 import PaymentWaiting from "./PaymentWaiting";
 import Step1ServiceSelection from "./booking/Step1ServiceSelection";
@@ -50,6 +51,9 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
     // Step 4
     paymentMethod: null,
     termsAccepted: false,
+    
+    // Order tracking (set in Step 1)
+    orderId: null,
   });
 
   // Payment state management
@@ -105,138 +109,240 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
       setPaymentState({ ...paymentState, status: 'processing' });
       setLoading(true);
       
-      // Mock: Simulate booking creation API call (500ms delay)
-      await new Promise(resolve => setTimeout(resolve, 500));
+      let orderId = formData.orderId;
       
-      const route = hotelData.routes.find(r => r.id === formData.selectedRoute);
-      const mockBookingId = 'BK-' + new Date().toISOString().split('T')[0].replace(/-/g, '') + '-' + 
-                            Math.random().toString(36).substr(2, 3).toUpperCase();
-      const mockOrderId = 'EV-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-      
-      // Step 2: Get selected payment method and detect type from name
-      const selectedPayment = paymentOptions.find(p => p.id === formData.paymentMethod);
-      
-      // Detect payment type from name/description (API uses 'bank' field, not 'name')
-      const detectPaymentType = (payment) => {
-        if (!payment) return 'instant';
-        // API returns: option.bank = "BCA Virtual Account", option.name might not exist
-        const bankName = (payment.bank || payment.name || payment.desc || '').toLowerCase();
+      // Step 2: Create order if not exists (for fixed routes that don't go through manual destination)
+      if (!orderId) {
+        console.log('[Payment] No existing order, creating new order for fixed route...');
         
-        console.log('Payment detection:', { original: payment.bank, lowercase: bankName }); // Debug log
+        const orderType = formData.bookingType === 'rental' ? 'rental' : 'later';
         
-        // QRIS - scan to pay
-        if (bankName.includes('qris')) return 'qris';
+        // Step 2.1: Set pickup location (hotel)
+        console.log('[Payment] Setting pickup location (hotel)...');
+        const pickupLocation = {
+          lat: hotelData.coordinates?.lat || -6.1680722,
+          lng: hotelData.coordinates?.lng || 106.8349,
+          label: hotelData.name || 'Classic Hotel',
+          address: hotelData.address || 'Jl. K.H. Samanhudi No. 43-45, Pasar Baru, Jakarta Pusat',
+        };
         
-        // Virtual Account - check for VA keywords
-        if (bankName.includes('virtual account') || bankName.includes(' va') || bankName.includes('va ')) return 'va';
+        await selectPickupLocation(pickupLocation, orderType);
+        console.log('[Payment] Pickup location set successfully');
         
-        // Banks that typically use VA (check bank name)
-        const vaBanks = ['bca', 'bni', 'mandiri', 'bri', 'cimb', 'danamon', 'bsi', 'maybank', 'bnc'];
-        for (const bank of vaBanks) {
-          if (bankName.includes(bank)) return 'va';
+        // Step 2.2: Set destination (from selected route)
+        console.log('[Payment] Setting destination...');
+        const selectedRoute = hotelData.routes?.find(r => r.id === formData.selectedRoute);
+        if (!selectedRoute) {
+          throw new Error('Please select a destination route first');
         }
         
-        // Only Permata without "Virtual Account" = instant redirect
-        return 'instant';
+        const destinationLocation = {
+          lat: selectedRoute.destination?.lat || -6.2382699,
+          lng: selectedRoute.destination?.lng || 106.8553428,
+          label: selectedRoute.name || 'Destination',
+          address: selectedRoute.description || '',
+        };
+        
+        await selectDestination(destinationLocation, orderType);
+        console.log('[Payment] Destination set successfully');
+        
+        // Step 2.3: Combine date and time for pickup_at (Backend requires Y-m-d H:i:s format with seconds!)
+        const pickupDateTime = `${formData.pickupDate} ${formData.pickupTime}:00`;
+        
+        const tripData = {
+          order_type: orderType,
+          pickup_at: pickupDateTime,
+        };
+        
+        // Add rental-specific fields
+        if (formData.bookingType === 'rental') {
+          const returnDateTime = `${formData.returnDate} ${formData.returnTime}:00`;
+          tripData.return_at = returnDateTime;
+          tripData.is_with_driver = formData.withDriver ? 1 : 0;
+          tripData.is_same_return_location = formData.returnLocation === formData.pickupLocation ? 1 : 0;
+        }
+        
+        console.log('[Payment] Submitting trip data:', tripData);
+        
+        const tripResponse = await EvistaAPI.trips.submit(tripData);
+        
+        if (tripResponse.code !== 200) {
+          throw new Error(tripResponse.message || 'Failed to create booking order');
+        }
+        
+        orderId = tripResponse.data?.order?.id || tripResponse.data?.id;
+        if (!orderId) {
+          throw new Error('No order ID returned from trip submission');
+        }
+        
+        console.log('[Payment] Order created with ID:', orderId);
+        
+        // Step 2.5: Select car type (required for price calculation)
+        const carTypeId = formData.backendCarData?.id || 
+                          formData.selectedVehicleClass || 
+                          1; // Default to economy
+        
+        console.log('[Payment] Selecting car type:', carTypeId);
+        
+        const carResponse = await EvistaAPI.cars.selectCar(carTypeId, tripData.order_type);
+        
+        if (carResponse.code !== 200) {
+          console.warn('[Payment] Car selection warning:', carResponse.message);
+          // Continue anyway, let payment fail if really needed
+        } else {
+          console.log('[Payment] Car selected successfully');
+        }
+      } else {
+        console.log('[Payment] Using existing order ID:', orderId);
+      }
+      
+      // Step 3: Update guest user profile with passenger data (required for payment gateway)
+      console.log('[Payment] Updating guest profile with passenger data...');
+      
+      // Use passenger WhatsApp as phone (remove any non-numeric characters)
+      const cleanPhone = formData.passengerWhatsApp.replace(/\D/g, '');
+      
+      // Generate default email if not provided (payment gateway requires email)
+      const defaultEmail = `guest-${cleanPhone}@evista.com`;
+      const passengerEmail = formData.passengerEmail || defaultEmail;
+      
+      const profileData = {
+        fullname: formData.passengerName || 'Guest User',
+        phone: cleanPhone,
+        email: passengerEmail,
       };
       
-      const paymentType = detectPaymentType(selectedPayment);
+      console.log('[Payment] Profile data:', profileData);
       
-      // Step 3: Mock payment transaction creation (300ms delay)
-      await new Promise(resolve => setTimeout(resolve, 300));
+      try {
+        const profileResponse = await EvistaAPI.profile.updateProfile(profileData);
+        if (profileResponse.code === 200) {
+          console.log('[Payment] Guest profile updated successfully');
+        } else {
+          console.warn('[Payment] Profile update warning:', profileResponse.message);
+          // Continue anyway, payment might still work with existing guest data
+        }
+      } catch (profileError) {
+        console.warn('[Payment] Profile update error:', profileError);
+        // Continue anyway, payment might still work
+      }
       
-      // Step 4: Handle different payment types
-      if (paymentType === 'instant') {
-        // Instant Payment Flow - Show redirect message then success
-        setPaymentState({
-          status: 'processing',
-          type: 'instant',
-          data: { redirect_url: '#payment-gateway' },
-          bookingId: mockBookingId,
-          orderId: mockOrderId
-        });
-        
-        // Mock: Simulate redirect and instant success (2 seconds)
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        setPaymentState({
-          status: 'success',
-          type: 'instant',
-          data: null,
-          bookingId: mockBookingId,
-          orderId: mockOrderId
-        });
-        
-      } else if (paymentType === 'va') {
-        // Virtual Account Flow - Show VA details and wait
-        const mockVANumber = '80123' + Math.floor(Math.random() * 100000000000).toString().padStart(11, '0');
-        const expiryDate = new Date();
-        expiryDate.setHours(23, 59, 59);
-        
-        setPaymentState({
-          status: 'waiting_payment',
-          type: 'va',
-          data: {
-            type: 'va',
-            va_number: mockVANumber,
-            bank: selectedPayment?.bank || 'BCA',
-            bank_logo: selectedPayment?.image,
-            amount: calculatePrice(),
-            expires_at: expiryDate.toISOString(),
-            instructions: {
-              steps: [
-                `Login to ${selectedPayment?.bank || 'bank'} mobile/internet banking`,
-                'Select "Transfer" menu',
-                'Choose "Virtual Account"',
-                `Enter VA number: ${mockVANumber}`,
-                `Verify amount: Rp ${calculatePrice().toLocaleString('id-ID')}`,
-                'Complete transaction'
-              ]
-            }
-          },
-          bookingId: mockBookingId,
-          orderId: mockOrderId
-        });
-        
-      } else if (paymentType === 'qris') {
-        // QRIS Flow - Show QR code and wait
-        const expiryDate = new Date();
-        expiryDate.setMinutes(expiryDate.getMinutes() + 60); // 1 hour expiry
-        
+      // Step 4: Get selected payment method for UI display
+      const selectedPayment = paymentOptions.find(p => p.id === formData.paymentMethod);
+      
+      // Step 5: Create payment transaction via backend API
+      const paymentPayload = {
+        order_id: orderId,
+        ref_payment_methods_id: formData.paymentMethod,
+        version: '3.1.0',
+      };
+
+      console.log('[Payment] Submitting checkout:', paymentPayload);
+      const paymentResponse = await EvistaAPI.checkout.submitCheckout(paymentPayload);
+
+      if (paymentResponse.code !== 200) {
+        throw new Error(paymentResponse.message || 'Payment creation failed');
+      }
+
+      // Step 5: Fetch payment details to get VA/QRIS/redirect info
+      console.log('[Payment] Fetching payment details for order:', orderId);
+      const paymentDetail = await EvistaAPI.checkout.getPaymentDetail(orderId);
+
+      if (paymentDetail.code !== 200) {
+        throw new Error(paymentDetail.message || 'Failed to fetch payment details');
+      }
+
+      const detail = paymentDetail.data;
+      console.log('[Payment] Payment detail received:', detail);
+
+      // Step 5: Route to appropriate payment UI based on backend response
+      if (detail.qrcode_string) {
+        // QRIS Payment - Display QR Code
         setPaymentState({
           status: 'waiting_payment',
           type: 'qris',
           data: {
             type: 'qris',
-            qr_code_url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgZmlsbD0iI2ZmZiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZmlsbD0iIzMzMyI+UVIgQ29kZTwvdGV4dD48L3N2Zz4=', // Mock QR code
-            amount: calculatePrice(),
-            expires_at: expiryDate.toISOString(),
-            instructions: {
-              steps: [
-                'Open your mobile banking or e-wallet app',
-                'Select "Scan QR" or "QRIS"',
-                'Scan the QR code below',
-                `Verify amount: Rp ${calculatePrice().toLocaleString('id-ID')}`,
-                'Complete payment'
-              ]
-            }
+            qr_code_url: detail.qrcode_string,
+            amount: detail.grand_total,
+            expires_at: detail.expired_at,
+            instructions: detail.cara_pembayaran || [],
+            order_code: detail.order_code,
+            order_id: detail.id,
           },
-          bookingId: mockBookingId,
-          orderId: mockOrderId
+          bookingId: detail.order_code,
+          orderId: detail.id,
         });
+
+      } else if (detail.virtual_account) {
+        // Virtual Account Payment - Display VA Number
+        setPaymentState({
+          status: 'waiting_payment',
+          type: 'va',
+          data: {
+            type: 'va',
+            va_number: detail.virtual_account,
+            bank: selectedPayment?.bank || 'Bank',
+            bank_logo: selectedPayment?.image,
+            amount: detail.grand_total,
+            expires_at: detail.expired_at,
+            instructions: detail.cara_pembayaran || [],
+            order_code: detail.order_code,
+            order_id: detail.id,
+          },
+          bookingId: detail.order_code,
+          orderId: detail.id,
+        });
+
+      } else if (detail.webview_url || detail.flip_link_url) {
+        // Flip WebView/Instant Payment - Redirect to external gateway
+        const redirectUrl = detail.webview_url || detail.flip_link_url;
+        const fullUrl = redirectUrl.startsWith('http') ? redirectUrl : `https://${redirectUrl}`;
+        
+        setPaymentState({
+          status: 'processing',
+          type: 'instant',
+          data: { redirect_url: fullUrl },
+          bookingId: detail.order_code,
+          orderId: detail.id,
+        });
+
+        // Auto-redirect to payment gateway
+        setTimeout(() => {
+          window.open(fullUrl, '_blank');
+          // Return to waiting state for payment confirmation
+          setPaymentState(prev => ({ 
+            ...prev, 
+            status: 'waiting_payment',
+            data: {
+              ...prev.data,
+              order_code: detail.order_code,
+              order_id: detail.id,
+            }
+          }));
+        }, 1500);
+
+      } else {
+        // Unknown payment type from backend
+        throw new Error('Invalid payment response: no payment method detected');
       }
       
       setLoading(false);
       
     } catch (error) {
-      console.error("Payment flow error:", error);
+      console.error("[Payment] Checkout error:", error);
       setFormError(error.message || "Payment processing failed. Please try again.");
-      setPaymentState({ ...paymentState, status: 'failed' });
+      setPaymentState({ 
+        status: 'failed',
+        errorMessage: error.message,
+        errorDetails: error.stack 
+      });
       setLoading(false);
     }
   };
 
-  // Handle payment success callback from PaymentWaiting component
+
+
   const handlePaymentSuccess = () => {
     setPaymentState(prev => ({ ...prev, status: 'success' }));
     

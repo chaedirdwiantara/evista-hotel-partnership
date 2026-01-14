@@ -43,32 +43,70 @@ export default function PaymentWaiting({ paymentData, onPaymentSuccess, onExpire
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Mock payment polling - simulates checking payment status every 5s
+  // Real-time payment status polling - checks every 5 seconds
   useEffect(() => {
-    if (!paymentData) return;
+    if (!paymentData?.order_id) return;
 
-    const mockPollInterval = setInterval(() => {
-      setPollingStatus('checking');
+    let isActive = true;
+    
+    const checkPaymentStatus = async () => {
+      if (!isActive) return;
       
-      // Simulate API check with random delay (100-500ms)
-      setTimeout(() => {
+      try {
+        setPollingStatus('checking');
+        
+        // Import API service
+        const { EvistaAPI } = await import('@/lib/evista-api');
+        const result = await EvistaAPI.checkout.getPaymentDetail(paymentData.order_id);
+        
+        if (!isActive) return; // Component unmounted during fetch
+        
+        if (result.code === 200 && result.data) {
+          const paymentStatus = result.data.payment_status || result.data.flip_payment_status;
+          
+          if (paymentStatus === 'paid' || paymentStatus === 'success') {
+            // Payment confirmed!
+            setPollingStatus('success');
+            console.log('[Payment Polling] Payment successful!');
+            setTimeout(() => {
+              if (isActive && onPaymentSuccess) {
+                onPaymentSuccess();
+              }
+            }, 1000);
+          } else if (paymentStatus === 'expired') {
+            console.log('[Payment Polling] Payment expired');
+            if (isActive && onExpired) {
+              onExpired();
+            }
+          } else if (paymentStatus === 'failed' || paymentStatus === 'cancelled') {
+            console.log('[Payment Polling] Payment failed/cancelled');
+            if (isActive && onFailed) {
+              onFailed();
+            }
+          } else {
+            // Still waiting
+            setPollingStatus('waiting');
+          }
+        } else {
+          setPollingStatus('waiting');
+        }
+      } catch (error) {
+        console.error('[Payment Polling] Error:', error);
         setPollingStatus('waiting');
-      }, Math.random() * 400 + 100);
-    }, 5000);
+      }
+    };
 
-    // Mock auto-success after 15 seconds (simulates polling success)
-    const mockSuccessTimeout = setTimeout(() => {
-      setPollingStatus('success');
-      setTimeout(() => {
-        onPaymentSuccess?.();
-      }, 1000);
-    }, 15000);
+    // Initial check
+    checkPaymentStatus();
+    
+    // Poll every 5 seconds
+    const pollInterval = setInterval(checkPaymentStatus, 5000);
 
     return () => {
-      clearInterval(mockPollInterval);
-      clearTimeout(mockSuccessTimeout);
+      isActive = false;
+      clearInterval(pollInterval);
     };
-  }, [paymentData, onPaymentSuccess, onFailed]);
+  }, [paymentData?.order_id, onPaymentSuccess, onExpired, onFailed]);
 
   if (!paymentData) return null;
 

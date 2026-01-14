@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import VehicleSelector from './VehicleSelector';
 import ManualDestinationInput from '../ManualDestinationInput';
 import { selectPickupLocation, selectDestination, setRoundTrip, submitTrip, getCarList } from '@/lib/manual-destination-api';
+import { EvistaAPI } from '@/lib/evista-api';
 
 /**
  * Step 1: Service Selection Component
@@ -85,10 +86,17 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
       const pickupAt = defaultPickupTime.toISOString().slice(0, 19).replace('T', ' ');
       
       console.log('[Manual Destination] Submitting trip with pickup time:', pickupAt);
-      await submitTrip({
+      const tripResult = await submitTrip({
         orderType: 'later',
         pickupAt: pickupAt,
       });
+      
+      // Save orderId from trip submission for later use in payment
+      const orderId = tripResult?.order?.id || tripResult?.id;
+      if (orderId) {
+        console.log('[Manual Destination] Order created with ID:', orderId);
+        updateFormData('orderId', orderId);
+      }
 
       // Step 4: Get available cars with pricing
       console.log('[Manual Destination] Fetching available cars...');
@@ -126,6 +134,35 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
     
     // Set the selected fixed route
     updateFormData('selectedRoute', routeId);
+  };
+
+  // Handle car selection - calls backend API to set car type on order
+  const handleCarSelect = async (car) => {
+    try {
+      console.log('[Car Selection] Selecting car:', car.id, car.name);
+      
+      // Update form data immediately for UI feedback
+      updateFormData('selectedVehicleClass', car.id);
+      updateFormData('backendCarData', car);
+      
+      // Call backend API to set car type on order (required for price calculation)
+      const orderType = formData.bookingType === 'rental' ? 'rental' : 'later';
+      const response = await EvistaAPI.cars.selectCar(car.id, orderType);
+      
+      if (response.code === 200) {
+        console.log('[Car Selection] Car selected successfully');
+        // Update orderId if returned in response
+        if (response.order?.id) {
+          updateFormData('orderId', response.order.id);
+        }
+      } else {
+        console.error('[Car Selection] Failed:', response.message);
+        // Still keep the selection for UI, API error will surface at payment
+      }
+    } catch (error) {
+      console.error('[Car Selection] Error selecting car:', error);
+      // Still keep the selection for UI, API error will surface at payment
+    }
   };
 
   // Watch for round trip changes when using manual destination
@@ -347,10 +384,7 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
                   <button
                     key={car.id}
                     type="button"
-                    onClick={() => {
-                      updateFormData('selectedVehicleClass', car.id);
-                      updateFormData('backendCarData', car);
-                    }}
+                    onClick={() => handleCarSelect(car)}
                     className={`p-5 rounded-xl text-left transition-all duration-300 border-2 ${
                       formData.selectedVehicleClass === car.id
                         ? 'shadow-lg scale-[1.02] bg-gradient-to-br from-amber-50 to-white'
