@@ -20,17 +20,17 @@ export default function AboutPartnership({ hotelData }) {
       subtitle: "Ramah Lingkungan",
     },
     {
-      icon: "/assets/icons/evista-benefits/modern-fleet-v3.png",
+      icon: "/assets/icons/evista-benefits/modern-fleet-v4.png",
       title: "Modern Fleet",
       subtitle: "Mobil Listrik Terkini",
     },
     {
-      icon: "/assets/icons/evista-benefits/whisper-quiet-v2.png",
+      icon: "/assets/icons/evista-benefits/whisper-quiet-v3.png",
       title: "Whisper Quiet",
       subtitle: "Senyap dan Nyaman",
     },
     {
-      icon: "/assets/icons/evista-benefits/better-pricing.png",
+      icon: "/assets/icons/evista-benefits/better-pricing-luxury.png",
       title: "Better Pricing",
       subtitle: "Harga Lebih Hemat",
     },
@@ -131,21 +131,7 @@ export default function AboutPartnership({ hotelData }) {
         </div>
 
         {/* Bottom Info Bar */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.8 }}
-          viewport={{ once: true }}
-          className="mt-20 text-center"
-        >
-          <div className="inline-flex items-center gap-6 px-8 py-4 bg-gradient-to-r from-amber-50 to-neutral-50 rounded-full border border-amber-100">
-            <span className="text-sm font-semibold text-neutral-700">⚡ 100% Electric Vehicles</span>
-            <span className="text-neutral-300">•</span>
-            <span className="text-sm font-semibold text-neutral-700">🌱 Eco-Friendly</span>
-            <span className="text-neutral-300">•</span>
-            <span className="text-sm font-semibold text-neutral-700">💎 Premium Service</span>
-          </div>
-        </motion.div>
+
       </div>
     </section>
   );
