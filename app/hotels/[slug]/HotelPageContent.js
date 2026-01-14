@@ -119,14 +119,7 @@ export default function HotelPageContent({ hotelData }) {
             >
               Fleet
             </a>
-            <a 
-              href="#features" 
-              className={`font-medium transition-all duration-300 hover:scale-105 ${
-                scrolled ? "text-neutral-700 hover:text-amber-600" : "text-white hover:text-amber-300"
-              }`}
-            >
-              Features
-            </a>
+
             <button 
               onClick={scrollToBooking}
               className="px-6 py-2.5 rounded-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-xl"
