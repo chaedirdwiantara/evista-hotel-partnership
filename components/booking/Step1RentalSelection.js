@@ -1,6 +1,7 @@
 "use client";
 
 import { calculateRentalPrice, getRentalDurations, formatPrice } from '@/lib/rental-pricing';
+import { Car, CalendarCheck, UserCheck, Key, MapPin } from 'lucide-react';
 
 /**
  * Step1RentalSelection Component
@@ -39,26 +40,38 @@ export default function Step1RentalSelection({ formData, updateFormData, hotelDa
             updateFormData("serviceType", "fixPrice");
             updateFormData("bookingType", "airport");
           }} 
-          className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-300 ${formData.serviceType === "fixPrice" ? "shadow-lg scale-105" : "bg-neutral-100"}`} 
+          className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 ${
+            formData.serviceType === "fixPrice" 
+              ? "shadow-md scale-[1.02]" 
+              : "bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-500"
+          }`} 
           style={{ 
             backgroundColor: formData.serviceType === "fixPrice" ? hotelData.theme.accentColor : undefined, 
-            color: formData.serviceType === "fixPrice" ? hotelData.theme.primaryColor : "#666" 
+            color: formData.serviceType === "fixPrice" ? hotelData.theme.primaryColor : undefined,
+            borderColor: formData.serviceType === "fixPrice" ? 'transparent' : undefined
           }}
         >
-          📋 Reservation
+          <CalendarCheck className={`w-5 h-5 ${formData.serviceType === "fixPrice" ? "" : "text-neutral-400"}`} />
+          <span>Reservation</span>
         </button>
         <button 
           onClick={() => {
             updateFormData("serviceType", "rental");
             updateFormData("bookingType", "rental");
           }} 
-          className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-300 ${formData.serviceType === "rental" ? "shadow-lg scale-105" : "bg-neutral-100"}`} 
+          className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 ${
+            formData.serviceType === "rental" 
+              ? "shadow-md scale-[1.02]" 
+              : "bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-500"
+          }`} 
           style={{ 
             backgroundColor: formData.serviceType === "rental" ? hotelData.theme.accentColor : undefined, 
-            color: formData.serviceType === "rental" ? hotelData.theme.primaryColor : "#666" 
+            color: formData.serviceType === "rental" ? hotelData.theme.primaryColor : undefined,
+            borderColor: formData.serviceType === "rental" ? 'transparent' : undefined
           }}
         >
-          🚗 Car Rental
+          <Car className={`w-5 h-5 ${formData.serviceType === "rental" ? "" : "text-neutral-400"}`} />
+          <span>Car Rental</span>
         </button>
       </div>
 
@@ -77,7 +90,7 @@ export default function Step1RentalSelection({ formData, updateFormData, hotelDa
             }`}
           >
             <div className="flex items-center justify-center gap-2">
-              <span>👨</span>
+              <UserCheck className={`w-5 h-5 ${formData.withDriver === true ? "text-amber-800" : "text-neutral-500"}`} />
               <span>With Driver</span>
             </div>
           </button>
@@ -90,7 +103,7 @@ export default function Step1RentalSelection({ formData, updateFormData, hotelDa
             }`}
           >
             <div className="flex items-center justify-center gap-2">
-              <span>✓</span>
+              <Key className={`w-5 h-5 ${formData.withDriver === false ? "text-amber-800" : "text-neutral-500"}`} />
               <span>Self Drive</span>
             </div>
           </button>
@@ -103,7 +116,7 @@ export default function Step1RentalSelection({ formData, updateFormData, hotelDa
           Pickup Location <span className="text-red-500">*</span>
         </label>
         <div className="w-full px-6 py-4 rounded-xl border-2 border-neutral-200 bg-neutral-50 text-neutral-600 text-lg flex items-center gap-3">
-          <span>📍</span>
+          <span><MapPin className="w-5 h-5 text-red-500" /></span>
           <span>{hotelData.name}</span>
         </div>
       </div>

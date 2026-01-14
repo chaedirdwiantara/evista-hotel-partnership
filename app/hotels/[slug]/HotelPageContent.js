@@ -143,9 +143,24 @@ export default function HotelPageContent({ hotelData }) {
 
       {/* Hero Section with Gradient Overlay Animation */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Animated Background Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-900/20 via-transparent to-transparent animate-pulse-slow"></div>
+        {/* Background Image with Overlay */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/hero-lobby.jpg"
+            alt="Hotel Lobby"
+            fill
+            className="object-cover"
+            priority
+            quality={90}
+          />
+          {/* Dark Overlay for Readability */}
+          <div className="absolute inset-0 bg-neutral-900/70 mix-blend-multiply"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-neutral-900/50 via-neutral-900/20 to-neutral-900"></div>
+        </div>
+
+        {/* Animated Background Gradient Acent */}
+        <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-900/40 via-transparent to-transparent animate-pulse-slow"></div>
         </div>
         
         {/* Floating Particles Effect */}
@@ -238,26 +253,10 @@ export default function HotelPageContent({ hotelData }) {
             className="text-5xl md:text-6xl font-bold text-center mb-8 animate-fadeIn"
             style={{ color: hotelData.theme.primaryColor }}
           >
-            Our Premium Services
+            Start Your Journey
           </h2>
           
-          <div className="flex flex-wrap justify-center gap-4 mb-16">
-            {hotelData.services.fixPrice.enabled && (
-              <span className="px-6 py-3 bg-white rounded-full text-neutral-700 font-medium shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105">
-                ✓ Fixed Price Airport Transfer
-              </span>
-            )}
-            {hotelData.services.rental.enabled && (
-              <span className="px-6 py-3 bg-white rounded-full text-neutral-700 font-medium shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105">
-                ✓ Car Rental Service
-              </span>
-            )}
-            {hotelData.services.nightReservation.enabled && (
-              <span className="px-6 py-3 bg-white rounded-full text-neutral-700 font-medium shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105">
-                ✓ 24/7 Availability
-              </span>
-            )}
-          </div>
+
           
           {/* Booking Form */}
           <BookingForm hotelData={hotelData} />

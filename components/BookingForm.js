@@ -562,14 +562,14 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Progress Steps */}
-      <div className="mb-12">
+      <div className="mb-12 max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           {[1, 2, 3, 4].map((step) => (
-            <div key={step} className="flex items-center flex-1">
+            <div key={step} className={`flex items-center ${step === 4 ? '' : 'flex-1'}`}>
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-300 ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-300 relative z-10 ${
                   step === currentStep
-                    ? "scale-110 shadow-lg"
+                    ? "scale-110 shadow-lg ring-4 ring-white"
                     : step < currentStep
                     ? "bg-green-500 text-white"
                     : "bg-neutral-200 text-neutral-500"
@@ -579,11 +579,17 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
                   color: step === currentStep ? hotelData.theme.primaryColor : undefined,
                 }}
               >
-                {step < currentStep ? "✓" : step}
+                {step < currentStep ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  step
+                )}
               </div>
               {step < 4 && (
                 <div
-                  className={`flex-1 h-1 mx-2 transition-all duration-300 ${
+                  className={`flex-1 h-1 mx-2 rounded-full transition-all duration-500 ${
                     step < currentStep ? "bg-green-500" : "bg-neutral-200"
                   }`}
                 ></div>
@@ -592,8 +598,8 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
           ))}
         </div>
         <div className="text-center">
-          <p className="text-sm font-semibold" style={{ color: hotelData.theme.accentColor }}>
-            Step {currentStep} of {totalSteps}
+          <p className="text-sm font-semibold tracking-wide" style={{ color: hotelData.theme.accentColor }}>
+            STEP {currentStep} OF {totalSteps}
           </p>
         </div>
       </div>

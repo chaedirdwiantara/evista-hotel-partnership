@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { Car, CalendarCheck } from 'lucide-react';
 import VehicleSelector from './VehicleSelector';
 import ManualDestinationInput from '../ManualDestinationInput';
 import { selectPickupLocation, selectDestination, setRoundTrip, submitTrip, getCarList } from '@/lib/manual-destination-api';
@@ -213,13 +214,19 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
             updateFormData("serviceType", "fixPrice");
             updateFormData("bookingType", "airport");
           }} 
-          className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-300 ${formData.serviceType === "fixPrice" ? "shadow-lg scale-105" : "bg-neutral-100"}`} 
+          className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 ${
+            formData.serviceType === "fixPrice" 
+              ? "shadow-md scale-[1.02]" 
+              : "bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-500"
+          }`} 
           style={{ 
             backgroundColor: formData.serviceType === "fixPrice" ? hotelData.theme.accentColor : undefined, 
-            color: formData.serviceType === "fixPrice" ? hotelData.theme.primaryColor : "#666" 
+            color: formData.serviceType === "fixPrice" ? hotelData.theme.primaryColor : undefined,
+            borderColor: formData.serviceType === "fixPrice" ? 'transparent' : undefined
           }}
         >
-          📋 Reservation
+          <CalendarCheck className={`w-5 h-5 ${formData.serviceType === "fixPrice" ? "" : "text-neutral-400"}`} />
+          <span>Reservation</span>
         </button>
         {hotelData.services.rental.enabled && (
           <button 
@@ -227,13 +234,19 @@ export default function Step1ServiceSelection({ formData, updateFormData, hotelD
               updateFormData("serviceType", "rental");
               updateFormData("bookingType", "rental");
             }} 
-            className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-300 ${formData.serviceType === "rental" ? "shadow-lg scale-105" : "bg-neutral-100"}`} 
+            className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 ${
+              formData.serviceType === "rental" 
+                ? "shadow-md scale-[1.02]" 
+                : "bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-500"
+            }`} 
             style={{ 
               backgroundColor: formData.serviceType === "rental" ? hotelData.theme.accentColor : undefined, 
-              color: formData.serviceType === "rental" ? hotelData.theme.primaryColor : "#666" 
+              color: formData.serviceType === "rental" ? hotelData.theme.primaryColor : undefined,
+              borderColor: formData.serviceType === "rental" ? 'transparent' : undefined
             }}
           >
-            🚗 Car Rental
+            <Car className={`w-5 h-5 ${formData.serviceType === "rental" ? "" : "text-neutral-400"}`} />
+            <span>Car Rental</span>
           </button>
         )}
       </div>
