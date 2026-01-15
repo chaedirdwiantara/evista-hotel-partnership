@@ -30,7 +30,7 @@ export default function AboutPartnership({ hotelData }) {
       subtitle: "Senyap dan Nyaman",
     },
     {
-      icon: "/assets/icons/evista-benefits/better-pricing-luxury.png",
+      icon: "/assets/icons/evista-benefits/better-pricing-v5.png",
       title: "Better Pricing",
       subtitle: "Harga Lebih Hemat",
     },
