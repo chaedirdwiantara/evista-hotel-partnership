@@ -3,6 +3,9 @@
  * Proxies round trip toggle request to Evista backend
  */
 
+
+import { API_CONFIG } from '@/lib/config';
+
 export async function POST(request) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -14,12 +17,11 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const backendUrl = process.env.NEXT_PUBLIC_EVISTA_API_URL || process.env.NEXT_PUBLIC_EVISTA_BACKEND_URL || 'https://bhisa-dev-v1.evista.id';
     
-    console.log('[DEBUG] Round trip - Calling backend:', `${backendUrl}/api/trip/roundtrip/set`);
+    console.log('[DEBUG] Round trip - Calling backend:', `${API_CONFIG.baseURL}/api/trip/roundtrip/set`);
     
     const response = await fetch(
-      `${backendUrl}/api/trip/roundtrip/set`,
+      `${API_CONFIG.baseURL}/api/trip/roundtrip/set`,
       {
         method: 'POST',
         headers: {

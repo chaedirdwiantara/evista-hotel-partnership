@@ -166,16 +166,33 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
         
         const tripResponse = await EvistaAPI.trips.submit(tripData);
         
+        console.log('[Payment] 📥 Trip submission response:', tripResponse);
+        
         if (tripResponse.code !== 200) {
           throw new Error(tripResponse.message || 'Failed to create booking order');
         }
         
-        orderId = tripResponse.data?.order?.id || tripResponse.data?.id;
+        // Extract order ID from response
+        // Backend returns order object directly in .data, not .data.order
+        // We need the primary key 'id' field, NOT 'trx_order_id' or 'ordercode'
+        orderId = tripResponse.data?.id;
+        
+        console.log('[Payment] 📦 Response data structure:', {
+          hasData: !!tripResponse.data,
+          hasId: !!tripResponse.data?.id,
+          id: tripResponse.data?.id,
+          ordercode: tripResponse.data?.ordercode,
+          trx_order_id: tripResponse.data?.trx_order_id,
+        });
+        
         if (!orderId) {
+          console.error('[Payment] ❌ No order ID in response:', tripResponse);
           throw new Error('No order ID returned from trip submission');
         }
         
-        console.log('[Payment] Order created with ID:', orderId);
+        console.log('[Payment] ✅ Order created successfully');
+        console.log('[Payment] 🔑 Order ID:', orderId, '(type:', typeof orderId, ')');
+        console.log('[Payment] 📄 Order Code:', tripResponse.data?.ordercode);
         
         // Step 2.5: Select car type (required for price calculation)
         const carTypeId = formData.backendCarData?.id || 
@@ -196,53 +213,41 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
         console.log('[Payment] Using existing order ID:', orderId);
       }
       
-      // Step 3: Update guest user profile with passenger data (required for payment gateway)
-      console.log('[Payment] Updating guest profile with passenger data...');
-      
-      // Use passenger WhatsApp as phone (remove any non-numeric characters)
-      const cleanPhone = formData.passengerWhatsApp.replace(/\D/g, '');
-      
-      // Generate default email if not provided (payment gateway requires email)
-      const defaultEmail = `guest-${cleanPhone}@evista.com`;
-      const passengerEmail = formData.passengerEmail || defaultEmail;
-      
-      const profileData = {
-        fullname: formData.passengerName || 'Guest User',
-        phone: cleanPhone,
-        email: passengerEmail,
-      };
-      
-      console.log('[Payment] Profile data:', profileData);
-      
-      try {
-        const profileResponse = await EvistaAPI.profile.updateProfile(profileData);
-        if (profileResponse.code === 200) {
-          console.log('[Payment] Guest profile updated successfully');
-        } else {
-          console.warn('[Payment] Profile update warning:', profileResponse.message);
-          // Continue anyway, payment might still work with existing guest data
-        }
-      } catch (profileError) {
-        console.warn('[Payment] Profile update error:', profileError);
-        // Continue anyway, payment might still work
+      // CRITICAL: Validate order ID before proceeding to payment
+      if (!orderId) {
+        const errorMsg = 'Order ID is missing. Cannot proceed to payment.';
+        console.error('[Payment] ERROR:', errorMsg);
+        console.error('[Payment] Debug Info:', {
+          formDataOrderId: formData.orderId,
+          tripResponseData: formData.tripResponseData,
+          bookingType: formData.bookingType,
+        });
+        throw new Error(errorMsg);
       }
       
-      // Step 4: Get selected payment method for UI display
+      console.log('[Payment] ✅ Order ID validated:', orderId);
+      console.log('[Payment] Order ID type:', typeof orderId);
+      
+      // Step 3: Get selected payment method for UI display
       const selectedPayment = paymentOptions.find(p => p.id === formData.paymentMethod);
       
-      // Step 5: Create payment transaction via backend API
+      // Step 4: Create payment transaction via backend API
       const paymentPayload = {
         order_id: orderId,
         ref_payment_methods_id: formData.paymentMethod,
         version: '3.1.0',
       };
 
-      console.log('[Payment] Submitting checkout:', paymentPayload);
+      console.log('[Payment] 📤 Submitting checkout with payload:', paymentPayload);
+      console.log('[Payment] 📤 Order ID being sent:', orderId, '(type:', typeof orderId, ')');
       const paymentResponse = await EvistaAPI.checkout.submitCheckout(paymentPayload);
 
       if (paymentResponse.code !== 200) {
+        console.error('[Payment] ❌ Payment creation failed:', paymentResponse);
         throw new Error(paymentResponse.message || 'Payment creation failed');
       }
+      
+      console.log('[Payment] ✅ Checkout submitted successfully');
 
       // Step 5: Fetch payment details to get VA/QRIS/redirect info
       console.log('[Payment] Fetching payment details for order:', orderId);
@@ -330,7 +335,14 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
       setLoading(false);
       
     } catch (error) {
-      console.error("[Payment] Checkout error:", error);
+      console.error("❌ [Payment] Checkout error:", error);
+      console.error("❌ [Payment] Error details:", {
+        message: error.message,
+        stack: error.stack,
+        orderId: formData.orderId,
+        paymentMethod: formData.paymentMethod,
+      });
+      
       setFormError(error.message || "Payment processing failed. Please try again.");
       setPaymentState({ 
         status: 'failed',

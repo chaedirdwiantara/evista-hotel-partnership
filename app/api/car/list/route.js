@@ -3,6 +3,9 @@
  * Proxies car list request to Evista backend with pricing
  */
 
+
+import { API_CONFIG } from '@/lib/config';
+
 export async function GET(request) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -16,10 +19,8 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const orderType = searchParams.get('order_type') || 'later';
     
-    const backendUrl = process.env.NEXT_PUBLIC_EVISTA_API_URL || process.env.NEXT_PUBLIC_EVISTA_BACKEND_URL || 'https://bhisa-dev-v1.evista.id';
-    
     const response = await fetch(
-      `${backendUrl}/api/car/list?order_type=${orderType}`,
+      `${API_CONFIG.baseURL}/api/car/list?order_type=${orderType}`,
       {
         method: 'GET',
         headers: {

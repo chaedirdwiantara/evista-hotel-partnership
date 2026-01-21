@@ -1,4 +1,5 @@
 import './globals.css';
+import AuthInitializer from '@/components/AuthInitializer';
 
 export const metadata = {
   title: 'Evista × Hotel Partners | Luxury Electric Transport',
@@ -12,7 +13,11 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AuthInitializer />
+        {children}
+      </body>
     </html>
   );
 }
+

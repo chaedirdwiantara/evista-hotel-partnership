@@ -1,3 +1,5 @@
+import { API_CONFIG } from '@/lib/config';
+
 export async function GET(request, { params }) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -9,13 +11,10 @@ export async function GET(request, { params }) {
     }
 
     const { id } = params;
-    const backendUrl = process.env.NEXT_PUBLIC_EVISTA_API_URL || 
-                      process.env.NEXT_PUBLIC_EVISTA_BACKEND_URL || 
-                      'https://bhisa-dev-v1.evista.id';
 
-    console.log('[Payment Detail] Request:', { backendUrl, orderId: id });
+    console.log('[Payment Detail] Request:', { backendUrl: API_CONFIG.baseURL, orderId: id });
 
-    const response = await fetch(`${backendUrl}/apiv3/checkout/paymentdetail/${id}`, {
+    const response = await fetch(`${API_CONFIG.baseURL}/apiv3/checkout/paymentdetail/${id}`, {
       method: 'GET',
       headers: {
         'Authorization': authHeader,

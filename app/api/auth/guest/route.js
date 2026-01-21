@@ -3,11 +3,11 @@
  * Proxies guest sign-in request to Evista backend
  */
 
+import { API_CONFIG } from '@/lib/config';
+
 export async function POST(request) {
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_EVISTA_API_URL || process.env.NEXT_PUBLIC_EVISTA_BACKEND_URL || 'https://bhisa-dev-v1.evista.id';
-    
-    const response = await fetch(`${backendUrl}/api/auth/sign/guest`, {
+    const response = await fetch(`${API_CONFIG.baseURL}/api/auth/sign/guest`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -3,6 +3,9 @@
  * Proxies trip submission request to Evista backend
  */
 
+
+import { API_CONFIG } from '@/lib/config';
+
 export async function POST(request) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -14,10 +17,9 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const backendUrl = process.env.NEXT_PUBLIC_EVISTA_API_URL || process.env.NEXT_PUBLIC_EVISTA_BACKEND_URL || 'https://bhisa-dev-v1.evista.id';
     
     const response = await fetch(
-      `${backendUrl}/api/trip/submit`,
+      `${API_CONFIG.baseURL}/api/trip/submit`,
       {
         method: 'POST',
         headers: {

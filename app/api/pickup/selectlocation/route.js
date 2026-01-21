@@ -3,6 +3,9 @@
  * Proxies pickup location selection request to Evista backend
  */
 
+
+import { API_CONFIG } from '@/lib/config';
+
 export async function POST(request) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -14,12 +17,11 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const backendUrl = process.env.NEXT_PUBLIC_EVISTA_API_URL || process.env.NEXT_PUBLIC_EVISTA_BACKEND_URL || 'https://bhisa-dev-v1.evista.id';
     
-    console.log('[DEBUG] Select pickup - Calling backend:', `${backendUrl}/api/pickup/selectpickup`);
+    console.log('[DEBUG] Select pickup - Calling backend:', `${API_CONFIG.baseURL}/api/pickup/selectpickup`);
     
     const response = await fetch(
-      `${backendUrl}/api/pickup/selectpickup`,
+      `${API_CONFIG.baseURL}/api/pickup/selectpickup`,
       {
         method: 'POST',
         headers: {

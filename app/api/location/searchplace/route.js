@@ -3,6 +3,9 @@
  * Proxies location search requests to Evista backend
  */
 
+
+import { API_CONFIG } from '@/lib/config';
+
 export async function GET(request) {
   try {
     const { searchParams } = request.nextUrl;
@@ -22,15 +25,13 @@ export async function GET(request) {
         { status: 401 }
       );
     }
-
-    const backendUrl = process.env.NEXT_PUBLIC_EVISTA_API_URL || process.env.NEXT_PUBLIC_EVISTA_BACKEND_URL || 'https://bhisa-dev-v1.evista.id';
     
     // Debug: Log what we're sending to backend
     console.log('[DEBUG] Searchplace - Token received:', token?.substring(0, 50) + '...');
-    console.log('[DEBUG] Searchplace - Backend URL:', backendUrl);
+    console.log('[DEBUG] Searchplace - Backend URL:', API_CONFIG.baseURL);
     
     const response = await fetch(
-      `${backendUrl}/api/location/searchplace?q=${encodeURIComponent(query)}`,
+      `${API_CONFIG.baseURL}/api/location/searchplace?q=${encodeURIComponent(query)}`,
       {
         method: 'GET',
         headers: {

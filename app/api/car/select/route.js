@@ -4,6 +4,9 @@
  * This sets the car type for an order, enabling price calculation
  */
 
+
+import { API_CONFIG } from '@/lib/config';
+
 export async function POST(request) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -15,15 +18,12 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const backendUrl = process.env.NEXT_PUBLIC_EVISTA_API_URL || 
-                       process.env.NEXT_PUBLIC_EVISTA_BACKEND_URL || 
-                       'https://bhisa-dev-v1.evista.id';
     
-    console.log('[Car Select] Calling backend:', `${backendUrl}/api/car/submit`);
+    console.log('[Car Select] Calling backend:', `${API_CONFIG.baseURL}/api/car/submit`);
     console.log('[Car Select] Body:', JSON.stringify(body));
     
     const response = await fetch(
-      `${backendUrl}/api/car/submit`,
+      `${API_CONFIG.baseURL}/api/car/submit`,
       {
         method: 'POST',
         headers: {

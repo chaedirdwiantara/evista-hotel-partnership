@@ -3,6 +3,9 @@
  * Proxies destination selection requests to Evista backend
  */
 
+
+import { API_CONFIG } from '@/lib/config';
+
 export async function POST(request) {
   try {
     const token = request.headers.get('authorization');
@@ -22,11 +25,9 @@ export async function POST(request) {
         { status: 400 }
       );
     }
-
-    const backendUrl = process.env.NEXT_PUBLIC_EVISTA_API_URL || process.env.NEXT_PUBLIC_EVISTA_BACKEND_URL || 'https://bhisa-dev-v1.evista.id';
     
     const response = await fetch(
-      `${backendUrl}/api/destination/selectlocation`,
+      `${API_CONFIG.baseURL}/api/destination/selectlocation`,
       {
         method: 'POST',
         headers: {
