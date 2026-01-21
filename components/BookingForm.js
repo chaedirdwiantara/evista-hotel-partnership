@@ -91,6 +91,105 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
     }
   };
 
+  // Handle Trip Submission (Step 2 -> Step 3 conversion)
+  const handleStep2Submit = async () => {
+    try {
+      setLoading(true);
+      console.log('[Step 2] Submitting trip details...');
+
+      const orderType = formData.bookingType === 'rental' ? 'rental' : 'later';
+      
+      // 1. Prepare Trip Data
+      let tripData = {
+        order_type: orderType,
+        pickup_at: `${formData.pickupDate} ${formData.pickupTime}:00`,
+      };
+
+      // 2. Handle Fixed Route specific logic (Manual Destination already set pickup/dest in Step 1)
+      if (formData.selectedRoute) {
+        // Set Pickup (Hotel)
+        const pickupLocation = {
+          lat: hotelData.coordinates?.lat || -6.1680722,
+          lng: hotelData.coordinates?.lng || 106.8349,
+          label: hotelData.name || 'Classic Hotel',
+          address: hotelData.address || 'Jl. K.H. Samanhudi No. 43-45, Pasar Baru, Jakarta Pusat',
+        };
+        await selectPickupLocation(pickupLocation, orderType);
+
+        // Set Destination (Selected Route)
+        const selectedRoute = hotelData.routes?.find(r => r.id === formData.selectedRoute);
+        const destinationLocation = {
+          lat: selectedRoute.destination?.lat || -6.2382699,
+          lng: selectedRoute.destination?.lng || 106.8553428,
+          label: selectedRoute.name || 'Destination',
+          address: selectedRoute.description || '',
+        };
+        await selectDestination(destinationLocation, orderType);
+      }
+
+      // 3. Add rental specific fields
+      if (formData.bookingType === 'rental') {
+        const returnDateTime = `${formData.returnDate} ${formData.returnTime}:00`;
+        tripData.return_at = returnDateTime;
+        tripData.is_with_driver = formData.withDriver ? 1 : 0;
+        tripData.is_same_return_location = formData.returnLocation === formData.pickupLocation ? 1 : 0;
+      }
+
+      // 4. Submit Trip (Create/Update Order)
+      console.log('[Step 2] Sending trip data:', tripData);
+      const tripResponse = await EvistaAPI.trips.submit(tripData);
+
+      if (tripResponse.code !== 200) {
+        throw new Error(tripResponse.message || 'Failed to create booking order');
+      }
+
+      const orderId = tripResponse.data?.id;
+      if (!orderId) throw new Error('No order ID returned from backend');
+
+      console.log('[Step 2] ✅ Order created/updated. ID:', orderId);
+      updateFormData('orderId', orderId);
+
+      // 5. Select Car Type (Important for pricing)
+      const carTypeId = formData.backendCarData?.id || formData.selectedVehicleClass || 1;
+      await EvistaAPI.cars.selectCar(carTypeId, orderType);
+
+      return true;
+    } catch (error) {
+      console.error('[Step 2] Submission Error:', error);
+      setFormError(error.message || 'Failed to process booking details. Please try again.');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Prepare for Step 4 (Checkout Overview)
+  const initializeCheckout = async () => {
+    if (!formData.orderId) return;
+    
+    try {
+      setLoading(true);
+      console.log('[Step 4] Initializing checkout for order:', formData.orderId);
+      
+      // 1. Get Payment Options
+      await loadPaymentOptions();
+
+      // 2. Get Checkout Overview (v3) - Validates order and gets final pricing
+      const overview = await EvistaAPI.checkout.getOverview();
+      console.log('[Step 4] Checkout Overview:', overview);
+
+      if (overview.code === 200 && overview.data) {
+        // Optional: Update local price/data from backend calculation if needed
+        // setGrandTotal(overview.data.grand_total); 
+      }
+    } catch (error) {
+      console.error('[Step 4] Overview Error:', error);
+      // Don't block, just log. Payment might still work or fail gracefully.
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCheckoutSubmission = async () => {
     setFormError(null);
 
@@ -105,152 +204,30 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
     }
 
     try {
-      // Step 1: Show processing state
       setPaymentState({ ...paymentState, status: 'processing' });
       setLoading(true);
       
-      let orderId = formData.orderId;
-      
-      // Step 2: Create order if not exists (for fixed routes that don't go through manual destination)
-      if (!orderId) {
-        console.log('[Payment] No existing order, creating new order for fixed route...');
-        
-        const orderType = formData.bookingType === 'rental' ? 'rental' : 'later';
-        
-        // Step 2.1: Set pickup location (hotel)
-        console.log('[Payment] Setting pickup location (hotel)...');
-        const pickupLocation = {
-          lat: hotelData.coordinates?.lat || -6.1680722,
-          lng: hotelData.coordinates?.lng || 106.8349,
-          label: hotelData.name || 'Classic Hotel',
-          address: hotelData.address || 'Jl. K.H. Samanhudi No. 43-45, Pasar Baru, Jakarta Pusat',
-        };
-        
-        await selectPickupLocation(pickupLocation, orderType);
-        console.log('[Payment] Pickup location set successfully');
-        
-        // Step 2.2: Set destination (from selected route)
-        console.log('[Payment] Setting destination...');
-        const selectedRoute = hotelData.routes?.find(r => r.id === formData.selectedRoute);
-        if (!selectedRoute) {
-          throw new Error('Please select a destination route first');
-        }
-        
-        const destinationLocation = {
-          lat: selectedRoute.destination?.lat || -6.2382699,
-          lng: selectedRoute.destination?.lng || 106.8553428,
-          label: selectedRoute.name || 'Destination',
-          address: selectedRoute.description || '',
-        };
-        
-        await selectDestination(destinationLocation, orderType);
-        console.log('[Payment] Destination set successfully');
-        
-        // Step 2.3: Combine date and time for pickup_at (Backend requires Y-m-d H:i:s format with seconds!)
-        const pickupDateTime = `${formData.pickupDate} ${formData.pickupTime}:00`;
-        
-        const tripData = {
-          order_type: orderType,
-          pickup_at: pickupDateTime,
-        };
-        
-        // Add rental-specific fields
-        if (formData.bookingType === 'rental') {
-          const returnDateTime = `${formData.returnDate} ${formData.returnTime}:00`;
-          tripData.return_at = returnDateTime;
-          tripData.is_with_driver = formData.withDriver ? 1 : 0;
-          tripData.is_same_return_location = formData.returnLocation === formData.pickupLocation ? 1 : 0;
-        }
-        
-        console.log('[Payment] Submitting trip data:', tripData);
-        
-        const tripResponse = await EvistaAPI.trips.submit(tripData);
-        
-        console.log('[Payment] 📥 Trip submission response:', tripResponse);
-        
-        if (tripResponse.code !== 200) {
-          throw new Error(tripResponse.message || 'Failed to create booking order');
-        }
-        
-        // Extract order ID from response
-        // Backend returns order object directly in .data, not .data.order
-        // We need the primary key 'id' field, NOT 'trx_order_id' or 'ordercode'
-        orderId = tripResponse.data?.id;
-        
-        console.log('[Payment] 📦 Response data structure:', {
-          hasData: !!tripResponse.data,
-          hasId: !!tripResponse.data?.id,
-          id: tripResponse.data?.id,
-          ordercode: tripResponse.data?.ordercode,
-          trx_order_id: tripResponse.data?.trx_order_id,
-        });
-        
-        if (!orderId) {
-          console.error('[Payment] ❌ No order ID in response:', tripResponse);
-          throw new Error('No order ID returned from trip submission');
-        }
-        
-        console.log('[Payment] ✅ Order created successfully');
-        console.log('[Payment] 🔑 Order ID:', orderId, '(type:', typeof orderId, ')');
-        console.log('[Payment] 📄 Order Code:', tripResponse.data?.ordercode);
-        
-        // Step 2.5: Select car type (required for price calculation)
-        const carTypeId = formData.backendCarData?.id || 
-                          formData.selectedVehicleClass || 
-                          1; // Default to economy
-        
-        console.log('[Payment] Selecting car type:', carTypeId);
-        
-        const carResponse = await EvistaAPI.cars.selectCar(carTypeId, tripData.order_type);
-        
-        if (carResponse.code !== 200) {
-          console.warn('[Payment] Car selection warning:', carResponse.message);
-          // Continue anyway, let payment fail if really needed
-        } else {
-          console.log('[Payment] Car selected successfully');
-        }
-      } else {
-        console.log('[Payment] Using existing order ID:', orderId);
-      }
-      
-      // CRITICAL: Validate order ID before proceeding to payment
-      if (!orderId) {
-        const errorMsg = 'Order ID is missing. Cannot proceed to payment.';
-        console.error('[Payment] ERROR:', errorMsg);
-        console.error('[Payment] Debug Info:', {
-          formDataOrderId: formData.orderId,
-          tripResponseData: formData.tripResponseData,
-          bookingType: formData.bookingType,
-        });
-        throw new Error(errorMsg);
-      }
-      
-      console.log('[Payment] ✅ Order ID validated:', orderId);
-      console.log('[Payment] Order ID type:', typeof orderId);
-      
-      // Step 3: Get selected payment method for UI display
-      const selectedPayment = paymentOptions.find(p => p.id === formData.paymentMethod);
-      
-      // Step 4: Create payment transaction via backend API
+      const orderId = formData.orderId;
+      if (!orderId) throw new Error('Missing Order ID. Please go back and try again.');
+
+      // Submit Payment (v3)
       const paymentPayload = {
         order_id: orderId,
         ref_payment_methods_id: formData.paymentMethod,
         version: '3.1.0',
       };
 
-      console.log('[Payment] 📤 Submitting checkout with payload:', paymentPayload);
-      console.log('[Payment] 📤 Order ID being sent:', orderId, '(type:', typeof orderId, ')');
-      const paymentResponse = await EvistaAPI.checkout.submitCheckout(paymentPayload);
+      console.log('[Payment] Submitting payment for Order:', orderId);
+      const paymentResponse = await EvistaAPI.checkout.submit(paymentPayload);
 
       if (paymentResponse.code !== 200) {
-        console.error('[Payment] ❌ Payment creation failed:', paymentResponse);
         throw new Error(paymentResponse.message || 'Payment creation failed');
       }
       
+      // ... (Existing payment detail handling remains same below) ...
+      
       console.log('[Payment] ✅ Checkout submitted successfully');
-
       // Step 5: Fetch payment details to get VA/QRIS/redirect info
-      console.log('[Payment] Fetching payment details for order:', orderId);
       const paymentDetail = await EvistaAPI.checkout.getPaymentDetail(orderId);
 
       if (paymentDetail.code !== 200) {
@@ -258,11 +235,10 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
       }
 
       const detail = paymentDetail.data;
-      console.log('[Payment] Payment detail received:', detail);
+      const selectedPayment = paymentOptions.find(p => p.id === formData.paymentMethod);
 
-      // Step 5: Route to appropriate payment UI based on backend response
+      // Handle Payment Response Types
       if (detail.qrcode_string) {
-        // QRIS Payment - Display QR Code
         setPaymentState({
           status: 'waiting_payment',
           type: 'qris',
@@ -278,9 +254,7 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
           bookingId: detail.order_code,
           orderId: detail.id,
         });
-
       } else if (detail.virtual_account) {
-        // Virtual Account Payment - Display VA Number
         setPaymentState({
           status: 'waiting_payment',
           type: 'va',
@@ -298,9 +272,7 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
           bookingId: detail.order_code,
           orderId: detail.id,
         });
-
       } else if (detail.webview_url || detail.flip_link_url) {
-        // Flip WebView/Instant Payment - Redirect to external gateway
         const redirectUrl = detail.webview_url || detail.flip_link_url;
         const fullUrl = redirectUrl.startsWith('http') ? redirectUrl : `https://${redirectUrl}`;
         
@@ -312,48 +284,30 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
           orderId: detail.id,
         });
 
-        // Auto-redirect to payment gateway
         setTimeout(() => {
           window.open(fullUrl, '_blank');
-          // Return to waiting state for payment confirmation
           setPaymentState(prev => ({ 
             ...prev, 
             status: 'waiting_payment',
-            data: {
-              ...prev.data,
-              order_code: detail.order_code,
-              order_id: detail.id,
-            }
+            data: { ...prev.data, order_code: detail.order_code, order_id: detail.id }
           }));
         }, 1500);
-
       } else {
-        // Unknown payment type from backend
         throw new Error('Invalid payment response: no payment method detected');
       }
       
-      setLoading(false);
-      
     } catch (error) {
-      console.error("❌ [Payment] Checkout error:", error);
-      console.error("❌ [Payment] Error details:", {
-        message: error.message,
-        stack: error.stack,
-        orderId: formData.orderId,
-        paymentMethod: formData.paymentMethod,
-      });
-      
+      console.error("❌ [Payment] Error:", error);
       setFormError(error.message || "Payment processing failed. Please try again.");
       setPaymentState({ 
         status: 'failed',
         errorMessage: error.message,
         errorDetails: error.stack 
       });
-      setLoading(false);
+    } finally {
+       setLoading(false);
     }
   };
-
-
 
   const handlePaymentSuccess = () => {
     setPaymentState(prev => ({ ...prev, status: 'success' }));
@@ -405,20 +359,31 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
     if (field === "paymentMethod" || field === "termsAccepted") setFormError(null);
   };
 
-  const nextStep = () => {
-    // Validate time on Step 2 before proceeding
+  const nextStep = async () => {
+    // Step 2 Validation: Check time
     if (currentStep === 2) {
       if (!isPickupTimeValid()) {
         setFormError("Please select a valid pickup time (at least 60 minutes from now).");
         return;
       }
+
+      // ACTION: Submit Trip when leaving Step 2
+      const success = await handleStep2Submit();
+      if (!success) return; // Stop if failed
     }
     
     if (currentStep < totalSteps) {
+      const nextStepNum = currentStep + 1;
       setFormError(null);
-      setCurrentStep(current => current + 1);
+      setCurrentStep(nextStepNum);
+
+      // Step 4 Initialization
+      if (nextStepNum === 4) {
+        initializeCheckout(); 
+      }
     }
   };
+
 
   // Validate pickup time is at least 60 minutes from now
   const isPickupTimeValid = () => {
