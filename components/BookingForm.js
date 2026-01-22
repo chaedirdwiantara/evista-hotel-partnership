@@ -5,11 +5,10 @@ import { EvistaAPI } from "@/lib/evista-api";
 import { selectPickupLocation, selectDestination } from "@/lib/manual-destination-api";
 import { isUrgentNightBooking, buildUrgentNightMessage, sendWhatsAppMessage, sendAdminAutoNotification } from "@/lib/whatsapp-utils";
 import PaymentWaiting from "./PaymentWaiting";
-import Step1ServiceSelection from "./booking/Step1ServiceSelection";
+import Step1JourneyBuilder from "./booking/Step1JourneyBuilder";
 import Step1RentalSelection from "./booking/Step1RentalSelection";
-import Step2DateTime from "./booking/Step2DateTime";
-import Step3PassengerDetails from "./booking/Step3PassengerDetails";
-import Step4Payment from "./booking/Step4Payment";
+import Step2PassengerDetails from "./booking/Step3PassengerDetails";
+import Step3Payment from "./booking/Step4Payment";
 
 /**
  * Multi-Step Booking Form Component
@@ -69,9 +68,9 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
 
   const [formError, setFormError] = useState(null);
 
-  // Load payment options when reaching Step 4
+  // Load payment options when reaching Step 3 (Payment)
   useEffect(() => {
-    if (currentStep === 4) {
+    if (currentStep === 3) {
       loadPaymentOptions();
     }
   }, [currentStep]);
@@ -352,7 +351,7 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
     }));
   };
 
-  const totalSteps = 4;
+  const totalSteps = 3;
 
   const updateFormData = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -360,16 +359,14 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
   };
 
   const nextStep = async () => {
-    // Step 2 Validation: Check time
-    if (currentStep === 2) {
-      if (!isPickupTimeValid()) {
-        setFormError("Please select a valid pickup time (at least 60 minutes from now).");
+    // Note: Trip submission now happens in Step1JourneyBuilder automatically
+    // We only need validation before Step 2 (Passenger Details)
+    if (currentStep === 1) {
+      // Journey must be submitted (orderId exists)
+      if (!formData.orderId) {
+        setFormError("Please complete your journey selection first.");
         return;
       }
-
-      // ACTION: Submit Trip when leaving Step 2
-      const success = await handleStep2Submit();
-      if (!success) return; // Stop if failed
     }
     
     if (currentStep < totalSteps) {
@@ -377,8 +374,8 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
       setFormError(null);
       setCurrentStep(nextStepNum);
 
-      // Step 4 Initialization
-      if (nextStepNum === 4) {
+      // Step 3 (Payment) Initialization
+      if (nextStepNum === 3) {
         initializeCheckout(); 
       }
     }
@@ -465,15 +462,18 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
 
   // Check if Step 1 is complete
   const isStep1Complete = () => {
+    // For airport bookings with unified journey builder
     if (formData.serviceType === "fixPrice") {
-      // Check for EITHER fixed route OR manual destination
-      const hasFixedRoute = formData.selectedRoute && formData.selectedVehicleClass;
-      const hasManualDestination = formData.manualDestination && formData.selectedVehicleClass;
+      // Journey is complete when orderId exists (set by Step1JourneyBuilder)
+      // and vehicle class is selected
+      const hasDestination = formData.selectedRoute || formData.manualDestination;
+      const hasVehicle = formData.selectedVehicleClass;
+      const hasOrderId = formData.orderId;
       
-      return hasFixedRoute || hasManualDestination;
+      return hasDestination && hasVehicle && hasOrderId;
     }
     
-    // For rental bookings
+    // For rental bookings (still using separate component)
     if (formData.bookingType === "rental") {
       const hasDriver = formData.withDriver === true || formData.withDriver === false;
       const hasDuration = formData.rentalDuration;
@@ -541,8 +541,8 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
       {/* Progress Steps */}
       <div className="mb-12 max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-4">
-          {[1, 2, 3, 4].map((step) => (
-            <div key={step} className={`flex items-center ${step === 4 ? '' : 'flex-1'}`}>
+          {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
+            <div key={step} className={`flex items-center ${step === totalSteps ? '' : 'flex-1'}`}>
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all duration-300 relative z-10 ${
                   step === currentStep
@@ -564,7 +564,7 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
                   step
                 )}
               </div>
-              {step < 4 && (
+              {step < totalSteps && (
                 <div
                   className={`flex-1 h-1 mx-2 rounded-full transition-all duration-500 ${
                     step < currentStep ? "bg-green-500" : "bg-neutral-200"
@@ -583,9 +583,9 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
 
       {/* Form Content */}
       <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12">
-        {/* Step 1: Service Selection - Conditional based on bookingType */}
+        {/* Step 1: Unified Journey Builder for Airport */}
         {currentStep === 1 && formData.bookingType === "airport" && (
-          <Step1ServiceSelection formData={formData} updateFormData={updateFormData} hotelData={hotelData} />
+          <Step1JourneyBuilder formData={formData} updateFormData={updateFormData} hotelData={hotelData} />
         )}
         {currentStep === 1 && formData.bookingType === "rental" && (
           <Step1RentalSelection 
@@ -596,15 +596,14 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
           />
         )}
         
-        {/* Step 2: Date/Time for BOTH Airport and Rental */}
+        {/* Step 2: Passenger Details (Previously Step 3) */}
         {currentStep === 2 && (
-          <Step2DateTime formData={formData} updateFormData={updateFormData} hotelData={hotelData} />
+          <Step2PassengerDetails formData={formData} updateFormData={updateFormData} hotelData={hotelData} />
         )}
+        
+        {/* Step 3: Payment (Previously Step 4) */}
         {currentStep === 3 && (
-          <Step3PassengerDetails formData={formData} updateFormData={updateFormData} hotelData={hotelData} />
-        )}
-        {currentStep === 4 && (
-          <Step4Payment 
+          <Step3Payment 
             formData={formData}
             updateFormData={updateFormData}
             calculatePrice={calculatePrice}
@@ -641,9 +640,8 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
                 disabled={
                   loading || 
                   (currentStep === 1 && !isStep1Complete()) ||
-                  (currentStep === 2 && !isStep2Complete()) ||
-                  (currentStep === 3 && !isStep3Complete()) ||
-                  (currentStep === 4 && !isStep4Complete())
+                  (currentStep === 2 && !isStep3Complete()) ||
+                  (currentStep === 3 && !isStep4Complete())
                 }
                 className="px-8 py-3 rounded-lg font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" 
                 style={{ backgroundColor: hotelData.theme.accentColor, color: hotelData.theme.primaryColor }}
