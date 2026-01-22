@@ -259,7 +259,11 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
 
       if (formData.manualDestination) {
         setIsLoadingCars(true);
-        const cars = await getCarList('later');
+        const rawCars = await getCarList('later');
+        // Filter cars: Allow Premium (2), Economy+ (9), Elite (10)
+        // Explicitly excluding Economy (1) as per request
+        const allowedCarIds = [2, 9];
+        const cars = rawCars.filter(car => allowedCarIds.includes(car.id));
         setAvailableCars(cars);
         setIsLoadingCars(false);
       }
@@ -287,7 +291,12 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
         try {
           setIsLoadingCars(true);
           await setRoundTrip(formData.isRoundTrip);
-          const cars = await getCarList('later');
+          const rawCars = await getCarList('later');
+          
+          // Filter cars: Allow Premium (2), Economy+ (9), Elite (10)
+          const allowedCarIds = [2, 9];
+          const cars = rawCars.filter(car => allowedCarIds.includes(car.id));
+          
           setAvailableCars(cars);
           
           if (formData.selectedVehicleClass) {
