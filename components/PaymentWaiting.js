@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import QRCode from "react-qr-code";
 
 export default function PaymentWaiting({ paymentData, onPaymentSuccess, onExpired, onCancel, onFailed, hotelData }) {
   const [timeRemaining, setTimeRemaining] = useState(null);
@@ -243,11 +244,14 @@ export default function PaymentWaiting({ paymentData, onPaymentSuccess, onExpire
           <div className="flex flex-col items-center">
             <div className="bg-white p-6 rounded-2xl border-4 border-neutral-800 mb-6">
               {paymentData.qr_code_url ? (
-                <img 
-                  src={paymentData.qr_code_url} 
-                  alt="QR Code" 
-                  className="w-64 h-64"
-                />
+                <div className="p-2 bg-white">
+                  <QRCode 
+                    value={paymentData.qr_code_url}
+                    size={256}
+                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                    viewBox={`0 0 256 256`}
+                  />
+                </div>
               ) : (
                 <div className="w-64 h-64 bg-neutral-100 flex items-center justify-center text-neutral-400">
                   QR Code

@@ -291,6 +291,29 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
             data: { ...prev.data, order_code: detail.order_code, order_id: detail.id }
           }));
         }, 1500);
+      
+      } else if (detail.paymentmethod && (detail.paymentmethod.bank || detail.paymentmethod.account_number)) {
+        // Handle case where payment method is detected but specific field (qr/va) might be pending
+        const isQris = detail.paymentmethod.bank?.toLowerCase().includes('qris') || 
+                       detail.paymentmethod.account_number?.toLowerCase().includes('qris');
+        
+        setPaymentState({
+          status: 'waiting_payment',
+          type: isQris ? 'qris' : 'va',
+          data: {
+            type: isQris ? 'qris' : 'va',
+            qr_code_url: detail.qrcode_string || null, // Might be null initially
+            va_number: detail.virtual_account || null,
+            amount: detail.grand_total,
+            expires_at: detail.expired_at,
+            instructions: detail.cara_pembayaran || [],
+            order_code: detail.order_code,
+            order_id: detail.id,
+          },
+          bookingId: detail.order_code,
+          orderId: detail.id,
+        });
+
       } else {
         throw new Error('Invalid payment response: no payment method detected');
       }
