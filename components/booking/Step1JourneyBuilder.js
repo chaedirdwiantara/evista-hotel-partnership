@@ -203,6 +203,7 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
     formData.withDriver,
     formData.rentalDuration,
     formData.returnLocation,
+    formData.isRoundTrip,        // Added: Watch trip type changes
     dateTimeValidation.timeIsInvalid,           // Added: Watch validation state
     dateTimeValidation.returnDateTimeIsInvalid  // Added: Watch return validation state
   ]);

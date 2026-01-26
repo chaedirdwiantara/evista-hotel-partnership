@@ -95,6 +95,11 @@ export function useJourneySubmission(formData, hotelData, validation) {
         await selectDestination(destinationLocation, orderType);
       }
 
+      // Add return date for round trip (non-rental)
+      if (!isRental && formData.isRoundTrip && formData.returnDate && formData.returnTime) {
+        tripData.return_at = `${formData.returnDate} ${formData.returnTime}:00`;
+      }
+
       // Add rental-specific fields
       if (formData.bookingType === 'rental') {
         tripData.return_at = `${formData.returnDate} ${formData.returnTime}:00`;
