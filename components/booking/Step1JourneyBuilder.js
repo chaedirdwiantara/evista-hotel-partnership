@@ -92,12 +92,15 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
       
       await selectPickupLocation(hotelPickupLocation, 'later');
       await selectDestination(destination, 'later');
-      await setRoundTrip(formData.isRoundTrip);
+      const rtData = await setRoundTrip(formData.isRoundTrip);
       
       updateFormData('selectedRoute', null);
       updateFormData('selectedVehicleClass', null);
       updateFormData('selectedVehicle', null);
       updateFormData('manualDestination', destination);
+      if (rtData && rtData.id) {
+        updateFormData('routeId', rtData.id);
+      }
       
     } catch (error) {
       console.error('[Manual Destination] Error:', error);
@@ -108,7 +111,7 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
   /**
    * Handle fixed route selection
    */
-  const handleFixedRouteSelect = (routeId) => {
+  const handleFixedRouteSelect = async (routeId) => {
     updateFormData('manualDestination', null);
     updateFormData('backendCarData', null);
     updateFormData('selectedVehicleClass', null);
@@ -117,6 +120,15 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
     vehicleSelection.clearVehicles();
     setDestinationError(null);
     updateFormData('selectedRoute', routeId);
+    // Sync round trip status and get journey ID
+    try {
+      const rtData = await setRoundTrip(formData.isRoundTrip);
+      if (rtData && rtData.id) {
+        updateFormData('routeId', rtData.id);
+      }
+    } catch (error) {
+      console.error('[Fixed Route] Error syncing round trip:', error);
+    }
   };
 
   /**
@@ -164,9 +176,15 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
         );
       } else {
         // If no active order yet, just sync the status to backend
-        setRoundTrip(formData.isRoundTrip).catch(err => 
-          console.error('[Journey Builder] Error syncing round trip status:', err)
-        );
+        setRoundTrip(formData.isRoundTrip)
+          .then(data => {
+             if (data && data.id) {
+               updateFormData('routeId', data.id);
+             }
+          })
+          .catch(err => 
+            console.error('[Journey Builder] Error syncing round trip status:', err)
+          );
       }
     }
   }, [formData.isRoundTrip]);
@@ -200,6 +218,8 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
     formData.returnTime,         // Added: Watch return time changes
     formData.selectedRoute, 
     formData.manualDestination,
+    formData.routeId,            // Added: Watch routeId to prevent submitting without it
+    formData.withDriver,
     formData.withDriver,
     formData.rentalDuration,
     formData.returnLocation,

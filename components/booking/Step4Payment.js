@@ -35,9 +35,9 @@ export default function Step4Payment({ formData, updateFormData, calculatePrice,
           Our driver will contact you via WhatsApp shortly.
         </p>
         <div className="bg-neutral-50 p-8 rounded-3xl mb-12 max-w-md mx-auto border-2 border-neutral-100">
-          <p className="text-sm text-neutral-500 uppercase tracking-widest mb-2 font-bold">Order ID</p>
+          <p className="text-sm text-neutral-500 uppercase tracking-widest mb-2 font-bold">Order Code</p>
           <p className="text-3xl font-mono font-bold" style={{ color: hotelData.theme.accentColor }}>
-            {paymentState.orderId}
+            {paymentState.bookingId || paymentState.orderId}
           </p>
         </div>
         
@@ -88,7 +88,7 @@ export default function Step4Payment({ formData, updateFormData, calculatePrice,
       <PaymentFailed
         errorType={paymentState.status}
         errorData={{
-          orderId: paymentState.orderId,
+          orderCode: paymentState.bookingId || paymentState.orderId,
           message: paymentState.errorMessage,
           details: paymentState.errorDetails
         }}

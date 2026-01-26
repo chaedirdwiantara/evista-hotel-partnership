@@ -15,7 +15,7 @@ export default function PaymentFailed({ errorType, errorData, onRetry, onCancel,
           color: 'amber',
           showRetry: true,
           showCancel: true,
-          showOrderId: false
+          showOrderCode: false
         };
       
       case 'failed':
@@ -26,7 +26,7 @@ export default function PaymentFailed({ errorType, errorData, onRetry, onCancel,
           color: 'red',
           showRetry: true,
           showCancel: true,
-          showOrderId: true
+          showOrderCode: true
         };
       
       case 'cancelled':
@@ -37,7 +37,7 @@ export default function PaymentFailed({ errorType, errorData, onRetry, onCancel,
           color: 'neutral',
           showRetry: true,
           showCancel: false,
-          showOrderId: false
+          showOrderCode: false
         };
       
       default:
@@ -48,7 +48,7 @@ export default function PaymentFailed({ errorType, errorData, onRetry, onCancel,
           color: 'red',
           showRetry: true,
           showCancel: false,
-          showOrderId: true
+          showOrderCode: true
         };
     }
   };
@@ -96,14 +96,14 @@ export default function PaymentFailed({ errorType, errorData, onRetry, onCancel,
         {content.message}
       </p>
 
-      {/* Order ID if available and strictly needed */}
-      {errorData?.orderId && content.showOrderId && (
+      {/* Order Code if available and strictly needed */}
+      {(errorData?.orderCode || errorData?.orderId) && content.showOrderCode && (
         <div className={`p-6 rounded-2xl mb-8 max-w-md mx-auto border-2 ${colors.bg} ${colors.border}`}>
           <p className={`text-sm uppercase tracking-widest mb-2 font-bold ${colors.subtext}`}>
-            Order ID
+            Order Code
           </p>
           <p className={`text-2xl font-mono font-bold ${colors.text}`}>
-            {errorData.orderId}
+            {errorData.orderCode || errorData.orderId}
           </p>
         </div>
       )}

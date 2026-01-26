@@ -138,6 +138,23 @@ export default function PaymentWaiting({ paymentData, onPaymentSuccess, onExpire
             )}
           </div>
 
+          {paymentData.order_code && (
+            <div className="mb-6 border-b border-blue-200 pb-6">
+              <p className="text-sm text-blue-700 font-semibold mb-1">Order Code</p>
+              <div className="flex items-center gap-3">
+                <p className="text-xl font-bold text-blue-900 tracking-wide">
+                  {paymentData.order_code}
+                </p>
+                <button
+                  onClick={() => handleCopy(paymentData.order_code)}
+                  className="px-3 py-1 bg-blue-200 text-blue-800 text-xs rounded-lg font-semibold hover:bg-blue-300 transition-all"
+                >
+                  {copied ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="mb-6">
             <p className="text-sm text-blue-700 font-semibold mb-2">Virtual Account Number</p>
             <div className="flex items-center gap-3">
@@ -260,6 +277,14 @@ export default function PaymentWaiting({ paymentData, onPaymentSuccess, onExpire
             </div>
 
             <div className="text-center">
+              {paymentData.order_code && (
+                <div className="mb-4 pb-4 border-b border-neutral-100">
+                  <p className="text-sm text-neutral-500 font-semibold mb-1">Order Code</p>
+                  <p className="text-xl font-bold text-neutral-700 font-mono">
+                    {paymentData.order_code}
+                  </p>
+                </div>
+              )}
               <p className="text-sm text-neutral-500 font-semibold mb-2">Total Amount</p>
               <p className="text-4xl font-black" style={{ color: hotelData.theme.accentColor }}>
                 Rp {paymentData.amount.toLocaleString('id-ID')}

@@ -25,6 +25,9 @@ export function useJourneySubmission(formData, hotelData, validation) {
     const hasDestination = formData.selectedRoute || formData.manualDestination;
     if (!hasDestination) return false;
     
+    // Must have a valid route ID (draft trip)
+    if (!formData.routeId) return false;
+    
     const isRental = formData.bookingType === 'rental';
     const dateField = isRental ? 'rentalDate' : 'pickupDate';
     const currentDate = formData[dateField];
@@ -73,6 +76,9 @@ export function useJourneySubmission(formData, hotelData, validation) {
       let tripData = {
         order_type: orderType,
         pickup_at: `${currentDate} ${formData.pickupTime}:00`,
+        return_at: "",
+        hotel_slug: hotelData?.slug,
+        route_id: formData.routeId,
       };
 
       // Set pickup and destination for fixed routes

@@ -68,10 +68,10 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
 
   const [formError, setFormError] = useState(null);
 
-  // Load payment options when reaching Step 3 (Payment)
+  // Initialize Step 3 (Payment & Overview)
   useEffect(() => {
     if (currentStep === 3) {
-      loadPaymentOptions();
+      initializeCheckout();
     }
   }, [currentStep]);
 
@@ -397,10 +397,7 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
       setFormError(null);
       setCurrentStep(nextStepNum);
 
-      // Step 3 (Payment) Initialization
-      if (nextStepNum === 3) {
-        initializeCheckout(); 
-      }
+      // Step 3 (Payment) Initialization handled by useEffect now to avoid double calls
     }
   };
 
