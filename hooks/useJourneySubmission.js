@@ -76,9 +76,9 @@ export function useJourneySubmission(formData, hotelData, validation) {
       let tripData = {
         order_type: orderType,
         pickup_at: `${currentDate} ${formData.pickupTime}:00`,
-        return_at: "",
+        return_at: formData.isRoundTrip && formData.returnDate && formData.returnTime ? `${formData.returnDate} ${formData.returnTime}:00` : "",
         hotel_slug: hotelData?.slug,
-        route_id: formData.routeId,
+        route_id: formData.isRoundTrip ? 1 : 0, // route_id refers to trip type (0=one-way, 1=round-trip)
       };
 
       // Set pickup and destination for fixed routes

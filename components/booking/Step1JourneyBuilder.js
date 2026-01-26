@@ -120,14 +120,28 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
     vehicleSelection.clearVehicles();
     setDestinationError(null);
     updateFormData('selectedRoute', routeId);
-    // Sync round trip status and get journey ID
+    
+    // Find the route details
+    const route = hotelData.routes.find(r => r.id === routeId);
+    if (!route) return;
+
+    // Initialize Trip (Pickup & Destination)
     try {
+      const hotelPickupLocation = createHotelPickupLocation(hotelData);
+      
+      // 1. Set Pickup (Hotel) - Initializes the session
+      await selectPickupLocation(hotelPickupLocation, 'later');
+      
+      // selectDestination is NOT needed for fixed routes as the route ID handles the destination logic
+      // and calling it with invalid params caused 400 errors.
+      
+      // 2. Sync round trip status
       const rtData = await setRoundTrip(formData.isRoundTrip);
       if (rtData && rtData.id) {
         updateFormData('routeId', rtData.id);
       }
     } catch (error) {
-      console.error('[Fixed Route] Error syncing round trip:', error);
+      console.error('[Fixed Route] Error initializing trip:', error);
     }
   };
 
@@ -164,7 +178,7 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
    * Ensures /api/trip/roundtrip is hit whenever toggle changes (if destination exists)
    */
   useEffect(() => {
-    if (formData.manualDestination) {
+    if (formData.manualDestination || formData.selectedRoute) {
       if (formData.orderId) {
         // If we have an active order/cars, we need to refresh the car list and prices
         const orderType = formData.bookingType === 'rental' ? 'rental' : 'later';
