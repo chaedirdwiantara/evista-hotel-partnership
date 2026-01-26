@@ -41,7 +41,7 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
   // CUSTOM HOOKS
   // ==================
   const dateTimeValidation = useDateTimeValidation(formData);
-  const journeySubmission = useJourneySubmission(formData, hotelData);
+  const journeySubmission = useJourneySubmission(formData, hotelData, dateTimeValidation);
   const vehicleSelection = useVehicleSelection();
 
   // ==================
@@ -149,25 +149,35 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
 
   /**
    * Effect: Update round trip and refresh cars for manual destinations
+   * Ensures /api/trip/roundtrip is hit whenever toggle changes (if destination exists)
    */
   useEffect(() => {
-    if (formData.manualDestination && vehicleSelection.availableCars.length > 0 && formData.orderId) {
-      const orderType = formData.bookingType === 'rental' ? 'rental' : 'later';
-      vehicleSelection.updateRoundTripAndRefreshCars(
-        formData.isRoundTrip,
-        orderType,
-        formData.selectedVehicleClass,
-        updateFormData
-      );
+    if (formData.manualDestination) {
+      if (formData.orderId) {
+        // If we have an active order/cars, we need to refresh the car list and prices
+        const orderType = formData.bookingType === 'rental' ? 'rental' : 'later';
+        vehicleSelection.updateRoundTripAndRefreshCars(
+          formData.isRoundTrip,
+          orderType,
+          formData.selectedVehicleClass,
+          updateFormData
+        );
+      } else {
+        // If no active order yet, just sync the status to backend
+        setRoundTrip(formData.isRoundTrip).catch(err => 
+          console.error('[Journey Builder] Error syncing round trip status:', err)
+        );
+      }
     }
   }, [formData.isRoundTrip]);
 
   /**
    * Effect: Auto-submit journey when ready
+   * Validation is now handled internally by journeySubmission.isReadyToSubmit()
    */
   useEffect(() => {
     const submitIfReady = async () => {
-      if (journeySubmission.isReadyToSubmit() && !journeySubmission.isSubmitting && !dateTimeValidation.timeIsInvalid) {
+      if (journeySubmission.isReadyToSubmit() && !journeySubmission.isSubmitting) {
         const result = await journeySubmission.submitJourney();
         
         if (result.success && result.orderId) {
@@ -186,11 +196,15 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
   }, [
     dateTimeValidation.currentDate, 
     formData.pickupTime, 
+    formData.returnDate,         // Added: Watch return date changes
+    formData.returnTime,         // Added: Watch return time changes
     formData.selectedRoute, 
     formData.manualDestination,
     formData.withDriver,
     formData.rentalDuration,
-    formData.returnLocation
+    formData.returnLocation,
+    dateTimeValidation.timeIsInvalid,           // Added: Watch validation state
+    dateTimeValidation.returnDateTimeIsInvalid  // Added: Watch return validation state
   ]);
 
   // ==================
@@ -231,6 +245,15 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
         />
       )}
 
+      {/* TRIP TYPE SELECTOR - Positioned before DateTime for better flow */}
+      {showDateTime && (
+        <TripTypeSelector
+          isRoundTrip={formData.isRoundTrip}
+          onTripTypeChange={handleTripTypeChange}
+          hotelData={hotelData}
+        />
+      )}
+
       {/* DATE/TIME SECTION */}
       {showDateTime && (
         <DateTimeSection
@@ -264,15 +287,6 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
               selectedVehicle={formData.selectedVehicle}
               onSelectVehicle={(vehicleId) => updateFormData("selectedVehicle", vehicleId)}
               vehicles={hotelData.fleet.filter(v => v.vehicleClass === formData.selectedVehicleClass && v.available)}
-              hotelData={hotelData}
-            />
-          )}
-
-          {/* Trip Type Selection */}
-          {formData.selectedVehicleClass && (
-            <TripTypeSelector
-              isRoundTrip={formData.isRoundTrip}
-              onTripTypeChange={handleTripTypeChange}
               hotelData={hotelData}
             />
           )}

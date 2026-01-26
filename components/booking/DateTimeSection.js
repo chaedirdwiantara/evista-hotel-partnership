@@ -114,7 +114,7 @@ export default function DateTimeSection({
 
       {/* Return Date & Time (Round Trip Only) */}
       {formData.isRoundTrip && (
-        <div className="animate-slideDown">
+        <div key="return-journey" className="animate-slideDown">
           <div className="p-6 bg-white rounded-2xl border-2 border-neutral-200">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg" style={{ backgroundColor: hotelData.theme.accentColor }}>

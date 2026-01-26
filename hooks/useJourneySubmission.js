@@ -10,9 +10,10 @@ import { EvistaAPI } from '@/lib/evista-api';
  * 
  * @param {Object} formData - The form data object
  * @param {Object} hotelData - Hotel configuration data
+ * @param {Object} validation - Validation states from useDateTimeValidation hook
  * @returns {Object} Submission state and functions
  */
-export function useJourneySubmission(formData, hotelData) {
+export function useJourneySubmission(formData, hotelData, validation) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -31,8 +32,19 @@ export function useJourneySubmission(formData, hotelData) {
     const hasDateTime = currentDate && formData.pickupTime;
     if (!hasDateTime) return false;
     
-    // Time validation is handled by useDateTimeValidation hook
-    // We'll assume it's valid here as this check is done externally
+    // Validate round trip fields for non-rental bookings
+    // For round trips, both pickup and return date/time must be filled
+    if (!isRental && formData.isRoundTrip) {
+      const hasRoundTripFields = formData.returnDate && formData.returnTime;
+      if (!hasRoundTripFields) return false;
+    }
+    
+    // Validate time constraints
+    // Don't submit if pickup time is invalid (less than 60 minutes from now)
+    if (validation?.timeIsInvalid) return false;
+    
+    // Don't submit if return time is before pickup time (for round trips)
+    if (validation?.returnDateTimeIsInvalid) return false;
     
     if (formData.bookingType === 'rental') {
       const hasRentalFields = formData.withDriver !== null && formData.rentalDuration && formData.returnLocation;
