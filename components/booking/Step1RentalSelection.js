@@ -78,35 +78,34 @@ export default function Step1RentalSelection({ formData, updateFormData, hotelDa
       {/* With Driver Toggle */}
       <div>
         <label className="block text-sm font-semibold text-neutral-700 mb-3">
-          With Driver? <span className="text-red-500">*</span>
+          Driver Service <span className="text-red-500">*</span>
         </label>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="flex items-center gap-4">
+          {/* Toggle Switch */}
           <button
-            onClick={() => updateFormData("withDriver", true)}
-            className={`py-4 px-6 rounded-xl border-2 font-semibold transition-all ${
-              formData.withDriver === true
-                ? 'border-amber-500 bg-amber-50 text-amber-800'
-                : 'border-neutral-200 hover:border-neutral-300 text-neutral-700'
-            }`}
+            type="button"
+            onClick={() => updateFormData("withDriver", !formData.withDriver)}
+            className="relative w-14 h-7 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2"
+            style={{ 
+              backgroundColor: formData.withDriver ? hotelData.theme.accentColor : '#9CA3AF',
+              focusRingColor: hotelData.theme.accentColor
+            }}
+            aria-label={`Switch to ${formData.withDriver ? 'Self Drive' : 'With Driver'}`}
           >
-            <div className="flex items-center justify-center gap-2">
-              <UserCheck className={`w-5 h-5 ${formData.withDriver === true ? "text-amber-800" : "text-neutral-500"}`} />
-              <span>With Driver</span>
-            </div>
+            <span 
+              className="absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ease-in-out"
+              style={{
+                transform: formData.withDriver ? 'translateX(28px)' : 'translateX(0)'
+              }}
+            />
           </button>
-          <button
-            onClick={() => updateFormData("withDriver", false)}
-            className={`py-4 px-6 rounded-xl border-2 font-semibold transition-all ${
-              formData.withDriver === false
-                ? 'border-amber-500 bg-amber-50 text-amber-800'
-                : 'border-neutral-200 hover:border-neutral-300 text-neutral-700'
-            }`}
+
+          <span 
+            className="font-semibold text-neutral-900 transition-all duration-300 min-w-[100px]"
+            role="status"
           >
-            <div className="flex items-center justify-center gap-2">
-              <Key className={`w-5 h-5 ${formData.withDriver === false ? "text-amber-800" : "text-neutral-500"}`} />
-              <span>Self Drive</span>
-            </div>
-          </button>
+            {formData.withDriver ? 'With Driver' : 'Self Drive'}
+          </span>
         </div>
       </div>
 
