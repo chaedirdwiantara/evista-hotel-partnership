@@ -78,11 +78,13 @@ export function useJourneySubmission(formData, hotelData, validation) {
         pickup_at: `${currentDate} ${formData.pickupTime}:00`,
         return_at: formData.isRoundTrip && formData.returnDate && formData.returnTime ? `${formData.returnDate} ${formData.returnTime}:00` : "",
         hotel_slug: hotelData?.slug,
-        route_id: formData.isRoundTrip ? 1 : 0, // route_id refers to trip type (0=one-way, 1=round-trip)
       };
 
-      // Set pickup and destination for fixed routes
+      // Flow 1: Fixed Route (Seamless Swap - Popular)
       if (formData.selectedRoute) {
+        tripData.route_id = formData.selectedRoute; // Include route_id for fixed routes
+
+        // Set Pickup (Hotel) & Destination (Route)
         const pickupLocation = {
           lat: hotelData.coordinates?.lat || -6.1680722,
           lng: hotelData.coordinates?.lng || 106.8349,
@@ -99,6 +101,15 @@ export function useJourneySubmission(formData, hotelData, validation) {
           address: selectedRoute.description || '',
         };
         await selectDestination(destinationLocation, orderType);
+      } 
+      // Flow 2: Manual Destination (Seamless Swap - Manual)
+      else if (formData.manualDestination) {
+        // Exclude route_id for manual routes (as per user request)
+        // Destination already selected via UI interaction
+      }
+      // Legacy Fallback (should not happen in new UI)
+      else {
+         tripData.route_id = formData.isRoundTrip ? 1 : 0;
       }
 
       // Add return date for round trip (non-rental)

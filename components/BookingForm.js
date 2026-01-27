@@ -102,10 +102,14 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
       let tripData = {
         order_type: orderType,
         pickup_at: `${formData.pickupDate} ${formData.pickupTime}:00`,
+        hotel_slug: hotelData.slug, // Added per user request
       };
 
       // 2. Handle Fixed Route specific logic (Manual Destination already set pickup/dest in Step 1)
       if (formData.selectedRoute) {
+        // Add route_id to payload (from API response via hotelData)
+        tripData.route_id = formData.selectedRoute;
+
         // Set Pickup (Hotel)
         const pickupLocation = {
           lat: hotelData.coordinates?.lat || -6.1680722,
@@ -124,6 +128,11 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
           address: selectedRoute.description || '',
         };
         await selectDestination(destinationLocation, orderType);
+      }
+      // 3. Handle Manual Destination (Seamless Swap - Manual)
+      else if (formData.manualDestination) {
+        // Exclude route_id as per user request
+        // Destination already selected via manual input
       }
 
       // 3. Add rental specific fields

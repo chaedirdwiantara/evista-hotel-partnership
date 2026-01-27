@@ -8,13 +8,119 @@ import BookingForm from "@/components/BookingForm";
 import FleetShowcase from "@/components/FleetShowcase";
 import AboutPartnership from "@/components/AboutPartnership";
 
+import { API_CONFIG } from "@/lib/config";
+import EvistaAPI from "@/lib/evista-api";
+
 /**
  * Hotel Landing Page Content
  * Client component with luxury animations and navigation
  */
-export default function HotelPageContent({ hotelData }) {
+export default function HotelPageContent({ hotelData: initialHotelData }) {
   const [scrolled, setScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [activeHotelData, setActiveHotelData] = useState(initialHotelData);
+
+  // Fetch Hotel Data from API
+  useEffect(() => {
+    const fetchHotelData = async () => {
+      try {
+        const token = await EvistaAPI.auth.getUserToken();
+        if (!token) return;
+
+        // Fetch Hotel Details
+        const hotelUrl = `${API_CONFIG.baseURL}/api/hotel/classic-hotel`;
+        const hotelRes = await fetch(hotelUrl, { 
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        });
+        
+        const response = await hotelRes.json();
+        
+        if (response.code === 200 && response.data?.hotel) {
+          const apiHotel = response.data.hotel;
+          // console.log("[HotelPage] Loaded dynamic data:", apiHotel); // DISABLED per user request
+          
+          setActiveHotelData(prev => ({
+            ...prev,
+            slug: apiHotel.slug,
+            name: apiHotel.name,
+            assets: {
+              ...prev.assets,
+              evistaIcon: apiHotel.evista_logo_url || prev.assets.evistaIcon,
+              icon: apiHotel.hotel_logo_url || prev.assets.icon,
+              // heroImage: apiHotel.hero_image_url || null, // DISABLED per user request (causing host errors)
+            },
+            theme: {
+              ...prev.theme,
+              // accentColor: apiHotel.theme?.accent_color || prev.theme.accentColor, // DISABLED per user request
+              // primaryColor: apiHotel.theme?.primary_color || prev.theme.primaryColor, // DISABLED per user request
+            }
+          }));
+        }
+
+        // DEBUG: Fetch Routes (Requested by user)
+        const routesUrl = `${API_CONFIG.baseURL}/api/hotel/classic-hotel/routes`;
+        const routesRes = await fetch(routesUrl, { 
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        });
+        const routesJson = await routesRes.json();
+        console.log("DEBUG RESPONSE [api/hotel/classic-hotel/routes]:", routesJson);
+
+        if (routesJson.code === 200 && routesJson.data?.routes) {
+           const apiRoutes = routesJson.data.routes;
+           
+           // Merge API data with Static Data (for images/coords)
+           const mergedRoutes = apiRoutes.map(apiRoute => {
+             const staticRoute = initialHotelData.routes.find(r => r.id === apiRoute.id) || {};
+             
+             // Transform API pricing array to object format
+             const pricing = {};
+             if (Array.isArray(apiRoute.pricing)) {
+               apiRoute.pricing.forEach(p => {
+                 // Normalize service_type to key (Economy+ -> economy)
+                 let key = 'economy';
+                 const type = p.service_type?.toLowerCase() || '';
+                 if (type.includes('premium')) key = 'premium';
+                 if (type.includes('elite')) key = 'elite';
+                 
+                 pricing[key] = {
+                   oneWay: p.one_way,
+                   roundTrip: p.round_trip
+                 };
+               });
+             }
+
+             return {
+               ...staticRoute, // Preserve static assets (images, coords)
+               id: apiRoute.id,
+               name: apiRoute.name,
+               // Use API data if available, fallback to static
+               distance: apiRoute.distance_km || staticRoute.distance,
+               estimatedDuration: apiRoute.estimated_duration || staticRoute.estimatedDuration,
+               pricing: Object.keys(pricing).length > 0 ? pricing : staticRoute.pricing,
+               // Ensure we have at least a fallback image if static missing
+               image: staticRoute.image || "/assets/hotels/gallery/01_soekarno_hatta.jpeg",
+             };
+           });
+
+           setActiveHotelData(prev => ({
+             ...prev,
+             routes: mergedRoutes
+           }));
+        }
+
+      } catch (err) {
+        console.error("Failed to load hotel data:", err);
+      }
+    };
+
+    fetchHotelData();
+  }, []);
 
   useEffect(() => {
     // Trigger animations on mount
@@ -41,8 +147,8 @@ export default function HotelPageContent({ hotelData }) {
     <div 
       className="relative"
       style={{ 
-        "--primary-color": hotelData.theme.primaryColor, 
-        "--accent-color": hotelData.theme.accentColor 
+        "--primary-color": activeHotelData.theme.primaryColor, 
+        "--accent-color": activeHotelData.theme.accentColor 
       }}
     >
       {/* Navigation Bar */}
@@ -60,8 +166,8 @@ export default function HotelPageContent({ hotelData }) {
             <div className="relative h-12 w-12 transition-all duration-300 group-hover:scale-110">
               <div className="absolute inset-0 bg-white rounded-xl shadow-md group-hover:shadow-xl transition-shadow duration-300" />
               <Image
-                src={hotelData.assets.icon || hotelData.assets.logo}
-                alt={hotelData.name}
+                src={activeHotelData.assets.icon || activeHotelData.assets.logo}
+                alt={activeHotelData.name}
                 fill
                 className="object-contain p-1.5 rounded-xl"
                 priority
@@ -73,7 +179,7 @@ export default function HotelPageContent({ hotelData }) {
               <span 
                 className="text-2xl font-light transition-all duration-300 relative z-10"
                 style={{ 
-                  color: scrolled ? hotelData.theme.accentColor : "#ffffff",
+                  color: scrolled ? activeHotelData.theme.accentColor : "#ffffff",
                   textShadow: scrolled ? 'none' : '0 0 20px rgba(212, 175, 55, 0.5)'
                 }}
               >
@@ -85,7 +191,7 @@ export default function HotelPageContent({ hotelData }) {
             <div className="relative h-12 w-12 transition-all duration-300 group-hover:scale-110">
               <div className="absolute inset-0 bg-white rounded-xl shadow-md group-hover:shadow-xl transition-shadow duration-300" />
               <Image
-                src={hotelData.assets.evistaIcon || hotelData.assets.evistaLogo}
+                src={activeHotelData.assets.evistaIcon || activeHotelData.assets.evistaLogo}
                 alt="Evista"
                 fill
                 className="object-contain p-1.5 rounded-xl"
@@ -124,8 +230,8 @@ export default function HotelPageContent({ hotelData }) {
               onClick={scrollToBooking}
               className="px-6 py-2.5 rounded-lg font-semibold transition-all duration-300 hover:scale-105 hover:shadow-xl"
               style={{ 
-                backgroundColor: hotelData.theme.accentColor,
-                color: hotelData.theme.primaryColor 
+                backgroundColor: activeHotelData.theme.accentColor,
+                color: activeHotelData.theme.primaryColor 
               }}
             >
               Book Now
@@ -139,7 +245,7 @@ export default function HotelPageContent({ hotelData }) {
         {/* Background Image with Overlay */}
         <div className="absolute inset-0 z-0">
           <Image
-            src="/hero-lobby.jpg"
+            src={activeHotelData.assets.heroImage || "/hero-lobby.jpg"}
             alt="Hotel Lobby"
             fill
             className="object-cover"
@@ -156,21 +262,23 @@ export default function HotelPageContent({ hotelData }) {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-900/40 via-transparent to-transparent animate-pulse-slow"></div>
         </div>
         
-        {/* Floating Particles Effect */}
-        <div className="absolute inset-0 overflow-hidden">
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-1 h-1 bg-amber-400/30 rounded-full animate-float"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 5}s`,
-                animationDuration: `${15 + Math.random() * 10}s`,
-              }}
-            />
-          ))}
-        </div>
+        {/* Floating Particles Effect (Client Only to fix Hydration Error) */}
+        {isVisible && (
+          <div className="absolute inset-0 overflow-hidden">
+            {[...Array(20)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-1 h-1 bg-amber-400/30 rounded-full animate-float"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 5}s`,
+                  animationDuration: `${15 + Math.random() * 10}s`,
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Hero Content */}
         <div 
@@ -185,7 +293,7 @@ export default function HotelPageContent({ hotelData }) {
               textShadow: "0 4px 20px rgba(0,0,0,0.3)" 
             }}
           >
-            {hotelData.content.hero.title}
+            {activeHotelData.content.hero.title}
           </h1>
           
           <p 
@@ -195,19 +303,19 @@ export default function HotelPageContent({ hotelData }) {
               textShadow: "0 2px 10px rgba(0,0,0,0.3)" 
             }}
           >
-            {hotelData.content.hero.subtitle}
+            {activeHotelData.content.hero.subtitle}
           </p>
           
           <button 
             onClick={scrollToBooking}
             className="group relative px-10 py-5 text-xl font-bold rounded-xl overflow-hidden transition-all duration-500 hover:scale-110 hover:shadow-2xl"
             style={{ 
-              backgroundColor: hotelData.theme.accentColor,
-              color: hotelData.theme.primaryColor,
+              backgroundColor: activeHotelData.theme.accentColor,
+              color: activeHotelData.theme.primaryColor,
               animation: "fadeInUp 1s ease-out 0.4s backwards"
             }}
           >
-            <span className="relative z-10">{hotelData.content.hero.cta}</span>
+            <span className="relative z-10">{activeHotelData.content.hero.cta}</span>
             {/* Shine effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
           </button>
@@ -222,21 +330,21 @@ export default function HotelPageContent({ hotelData }) {
       </section>
 
       {/* Evista Benefits Section */}
-      <AboutPartnership hotelData={hotelData} />
+      <AboutPartnership hotelData={activeHotelData} />
 
       {/* Fix Price Routes Section */}
       <div id="routes">
         <FixPriceRoutes 
-          routes={hotelData.routes}
-          accentColor={hotelData.theme.accentColor}
-          primaryColor={hotelData.theme.primaryColor}
+          routes={activeHotelData.routes}
+          accentColor={activeHotelData.theme.accentColor}
+          primaryColor={activeHotelData.theme.primaryColor}
         />
       </div>
 
       {/* Fleet Showcase Section */}
       {/* Fleet Showcase Section */}
       <section id="fleet">
-        <FleetShowcase hotelData={hotelData} onBook={scrollToBooking} />
+        <FleetShowcase hotelData={activeHotelData} onBook={scrollToBooking} />
       </section>
 
       {/* Services Section */}
@@ -244,7 +352,7 @@ export default function HotelPageContent({ hotelData }) {
         <div className="max-w-6xl mx-auto px-6">
           <h2 
             className="text-5xl md:text-6xl font-bold text-center mb-8 animate-fadeIn"
-            style={{ color: hotelData.theme.primaryColor }}
+            style={{ color: activeHotelData.theme.primaryColor }}
           >
             Start Your Journey
           </h2>
@@ -252,7 +360,7 @@ export default function HotelPageContent({ hotelData }) {
 
           
           {/* Booking Form */}
-          <BookingForm hotelData={hotelData} />
+          <BookingForm hotelData={activeHotelData} />
         </div>
       </section>
 
