@@ -10,6 +10,7 @@ import { searchPlace } from '@/lib/manual-destination-api';
 export default function ManualDestinationInput({ 
   onDestinationSelect,
   onInputFocus, // New: callback when input is focused
+  selectedDestination: externalSelectedDestination, // New: Controlled prop
   primaryColor = "#1a1a1a",
   accentColor = "#d4af37",
   className = "" 
@@ -24,8 +25,36 @@ export default function ManualDestinationInput({
   const inputRef = useRef(null);
   const containerRef = useRef(null); // Ref for entire component container
 
+  // NEW: Sync with external selected destination
+  useEffect(() => {
+    // If external prop is provided
+    if (externalSelectedDestination !== undefined) {
+      setSelectedDestination(externalSelectedDestination);
+      if (externalSelectedDestination) {
+        setSearchQuery(externalSelectedDestination.name);
+      } else {
+        // If external is null (cleared), clear internal state unless user is measuring typing
+        // We only clear if the internal state thinks we have a selection but external says null
+        // OR if we want to force reset.
+        // Simple rule: if external is null, and we have a selectedDestination, clear everything.
+        // But if we just have text and no selection, maybe don't clear? 
+        // User requirement: "input manual otomatis kosong bersih". So yes, clear text too.
+        if (selectedDestination !== null || searchQuery !== '') {
+             // Only clear if we are not currently typing? 
+             // No, this runs when prop changes. If parent clears it, we clear.
+             // But we need to distinguish "parent cleared" vs "user is typing new query".
+             // We rely on the fact that parent passes current formData value.
+             setSearchQuery('');
+        }
+      }
+    }
+  }, [externalSelectedDestination]);
+
   // Debounced search
   useEffect(() => {
+    // If we have a selected destination, don't search
+    if (selectedDestination) return;
+
     if (searchQuery.length < 3) {
       setSearchResults([]);
       setShowResults(false);

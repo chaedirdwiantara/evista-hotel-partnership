@@ -94,7 +94,7 @@ export default function RouteSelector({
           className="absolute z-50 w-full mt-2 bg-white border-2 rounded-xl shadow-2xl overflow-hidden animate-slideDown"
           style={{ borderColor: hotelData.theme.accentColor }}
         >
-          <div className="max-h-[400px] overflow-y-auto">
+          <div className="max-h-60 overflow-y-auto custom-scrollbar">
             {routes.map((route, index) => (
               <button
                 key={route.id}

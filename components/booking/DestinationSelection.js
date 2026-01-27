@@ -1,13 +1,13 @@
-"use client";
-
+import { useState, useEffect } from 'react';
+import { MapPin, Search, ArrowLeft, ArrowRight } from 'lucide-react';
 import RouteSelector from './RouteSelector';
 import ManualDestinationInput from '../ManualDestinationInput';
 
 /**
  * DestinationSelection Component
  * 
- * Destination selection UI combining fixed routes and manual search.
- * Extracted from Step1JourneyBuilder.js (lines 390-437)
+ * Destination selection UI combining fixed routes and manual search using a "Seamless Swap" interface.
+ * Shows one mode at a time with a clear toggle action.
  * 
  * @param {Object} props
  * @param {Object} props.formData - Current form state
@@ -25,47 +25,100 @@ export default function DestinationSelection({
   onManualInputFocus,
   destinationError 
 }) {
+  // viewMode: 'popular' | 'manual'
+  const [viewMode, setViewMode] = useState('popular');
+  
+  // Sync viewMode with external data state
+  // If we have a manual destination, we MUST be in manual mode.
+  // If we have a selected route, we usually want to be in popular mode.
+  useEffect(() => {
+    if (formData.manualDestination) {
+      setViewMode('manual');
+    } else if (formData.selectedRoute) {
+      setViewMode('popular');
+    }
+  }, [formData.manualDestination, formData.selectedRoute]);
+
+  const handleModeChange = (mode) => {
+    setViewMode(mode);
+    
+    // Mutual Exclusivity: Clear the data of the mode we are leaving
+    if (mode === 'popular') {
+      // Switching BACK to Popular -> Clear Manual
+      onManualDestinationSelect(null);
+    } else {
+      // Switching TO Manual -> Clear Fixed
+      onFixedRouteSelect(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="space-y-3">
-        <h3 className="font-semibold text-neutral-700">Select Route</h3>
-        <RouteSelector
-          routes={hotelData.routes}
-          selectedRouteId={formData.selectedRoute}
-          onRouteSelect={onFixedRouteSelect}
-          hotelData={hotelData}
-        />
-      </div>
       
-      <div className="mt-8 mb-6 flex items-center gap-4">
-        <div className="flex-1 h-px bg-neutral-200"></div>
-        <span className="text-neutral-400 font-medium text-sm">OR</span>
-        <div className="flex-1 h-px bg-neutral-200"></div>
-      </div>
+      {/* CONTENT AREA */}
+      <div className="min-h-[120px] transition-all duration-300 ease-in-out">
+        {viewMode === 'popular' ? (
+          <div className="animate-slideUp fade-in space-y-4">
+             <div>
+              <h3 className="font-semibold text-neutral-700">Select Route</h3>
+              <p className="text-xs text-neutral-500 mt-1">Choose from our recommended destinations</p>
+            </div>
+            
+            <RouteSelector
+              routes={hotelData.routes}
+              selectedRouteId={formData.selectedRoute}
+              onRouteSelect={onFixedRouteSelect}
+              hotelData={hotelData}
+            />
 
-      <div className="bg-gradient-to-br from-neutral-50 to-white rounded-xl shadow-md border-2 border-neutral-200 p-6">
-        <div className="mb-4">
-          <h4 className="text-lg font-bold mb-1" style={{ color: hotelData.theme.primaryColor }}>
-            📍 Search Other Destinations
-          </h4>
-          <p className="text-sm text-neutral-600">
-            Can't find your route? Search manually
-          </p>
-        </div>
-        
-        <ManualDestinationInput
-          onDestinationSelect={onManualDestinationSelect}
-          onInputFocus={onManualInputFocus}
-          primaryColor={hotelData.theme.primaryColor}
-          accentColor={hotelData.theme.accentColor}
-        />
-        
-        {destinationError && (
-          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-            <p className="text-red-600 text-sm">{destinationError}</p>
+            {/* SEAMLESS SWAP TOGGLE: Go to Manual */}
+            <div className="flex justify-center pt-2">
+               <button
+                type="button"
+                onClick={() => handleModeChange('manual')}
+                className="group flex items-center gap-2 text-sm font-medium text-neutral-500 hover:text-neutral-800 transition-colors"
+              >
+                <Search className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                <span>Can't find your destination? <span className="underline decoration-dotted underline-offset-4">Search manually</span></span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="animate-slideUp fade-in space-y-4">
+            {/* HEADER ACTION: Go back to Popular */}
+             <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="font-semibold text-neutral-700">Search Destination</h3>
+                  <p className="text-xs text-neutral-500 mt-1">Enter your specific destination manually</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleModeChange('popular')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-neutral-100 hover:bg-neutral-200 text-neutral-600 transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Back to Routes
+                </button>
+             </div>
+
+             <ManualDestinationInput
+              selectedDestination={formData.manualDestination} // Controlled Prop
+              onDestinationSelect={onManualDestinationSelect}
+              onInputFocus={onManualInputFocus}
+              primaryColor={hotelData.theme.primaryColor}
+              accentColor={hotelData.theme.accentColor}
+            />
           </div>
         )}
       </div>
+        
+      {destinationError && (
+        <div className="mt-2 p-4 bg-red-50 border border-red-200 rounded-xl animate-shake">
+          <p className="text-red-600 text-sm flex items-center gap-2">
+            <span>⚠️</span> {destinationError}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
