@@ -13,9 +13,11 @@ export function useDateTimeValidation(formData) {
   const dateField = isRental ? 'rentalDate' : 'pickupDate';
   const currentDate = formData[dateField];
   
-  // Calculate minimum date and time (current time + 60 minutes)
+  // Calculate minimum date and time
   const now = new Date();
-  const minDateTime = new Date(now.getTime() + 60 * 60 * 1000);
+  // Rental: 6 hours buffer, Reservation: 1 hour buffer
+  const bufferHours = isRental ? 6 : 1;
+  const minDateTime = new Date(now.getTime() + bufferHours * 60 * 60 * 1000);
   const minDate = minDateTime.toISOString().split("T")[0];
   
   /**
@@ -82,10 +84,47 @@ export function useDateTimeValidation(formData) {
     return returnDateTime > pickupDateTime;
   };
 
+  /**
+   * Check if booking is restricted due to Urgent Night Service rules.
+   * Definition of "Urgent Night Service": Booking for 00:00 - 06:00 AND Booking time is < 24 hours from now.
+   * Blocking Condition: Cannot make Urgent Night Service booking if outside Office Hours (21:00 - 06:00).
+   * @returns {boolean}
+   */
+  const isNightServiceRestricted = () => {
+    if (!formData.pickupTime || !currentDate) return false;
+
+    const now = new Date();
+    
+    // 1. Check Definition of "Night Service" (00-06)
+    const [h, m] = formData.pickupTime.split(':').map(Number);
+    const isNightHours = h >= 0 && h < 6;
+
+    if (!isNightHours) return false;
+
+    // 2. Check Definition of "< 24 Hours"
+    const tripDateTime = new Date(`${currentDate}T${formData.pickupTime}:00`);
+    const diffHours = (tripDateTime - now) / (1000 * 60 * 60);
+    const isWithin24Hours = diffHours < 24;
+
+    // "Urgent Night Service" = Night Hours + Within 24 Hours
+    const isUrgentNightService = isNightHours && isWithin24Hours;
+
+    if (!isUrgentNightService) return false;
+
+    // 3. Blocking Condition: Outside Admin Office Hours (06:00 - 21:00)
+    // Office Open: 06 <= hour < 21. Outside: hour < 6 OR hour >= 21
+    const currentHour = now.getHours();
+    const isOutsideOfficeHours = currentHour < 6 || currentHour >= 21;
+
+    // Block if it is Urgent Night Service AND we are outside office hours
+    return isOutsideOfficeHours;
+  };
+
   // Calculate derived states
   const minTime = getMinTime();
   const timeIsInvalid = !isTimeValid();
   const returnDateTimeIsInvalid = !isReturnDateTimeValid();
+  const nightServiceRestricted = isNightServiceRestricted();
 
   return {
     // Values
@@ -98,6 +137,7 @@ export function useDateTimeValidation(formData) {
     // Validation states
     timeIsInvalid,
     returnDateTimeIsInvalid,
+    nightServiceRestricted, 
     
     // Functions
     getMinTime,

@@ -16,6 +16,9 @@ import { getCarList, selectPickupLocation, selectDestination } from '@/lib/manua
  * - Auto-submission for vehicle selection
  * - Vehicle Selection Grid with dynamic pricing
  */
+import { useDateTimeValidation } from "@/hooks/useDateTimeValidation";
+import DateTimeSection from "./DateTimeSection";
+
 export default function Step1RentalSelection({ formData, updateFormData, hotelData, onContinue }) {
   const rentalDurations = getRentalDurations();
   const rentalVehicles = hotelData.fleet || [];
@@ -24,6 +27,9 @@ export default function Step1RentalSelection({ formData, updateFormData, hotelDa
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableCars, setAvailableCars] = useState([]);
   const [isLoadingCars, setIsLoadingCars] = useState(false);
+
+  // Initialize validation hook
+  const validation = useDateTimeValidation(formData);
 
   // Return location options - WITH COORDINATES
   // Note: Using hotelData for Classic Hotel, and hardcoded logic for Halim
@@ -234,8 +240,16 @@ export default function Step1RentalSelection({ formData, updateFormData, hotelDa
       <div className="flex gap-4">
         <button 
           onClick={() => {
+            // Switch to Reservation (Airport Transfer)
             updateFormData("serviceType", "fixPrice");
             updateFormData("bookingType", "airport");
+            
+            // Cleanup Rental Data
+            updateFormData("rentalDate", "");
+            updateFormData("rentalDuration", ""); 
+            updateFormData("pickupTime", "");
+            updateFormData("orderId", null); // Reset order
+            updateFormData("selectedVehicle", null);
           }} 
           className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 ${
             formData.serviceType === "fixPrice" 
@@ -253,8 +267,16 @@ export default function Step1RentalSelection({ formData, updateFormData, hotelDa
         </button>
         <button 
           onClick={() => {
+            // Switch to Rental
             updateFormData("serviceType", "rental");
             updateFormData("bookingType", "rental");
+            
+            // Cleanup Reservation Data
+            updateFormData("selectedRoute", null);
+            updateFormData("selectedVehicleClass", null);
+            updateFormData("pickupTime", "");
+            updateFormData("orderId", null); // Reset order
+            updateFormData("selectedVehicle", null);
           }} 
           className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 ${
             formData.serviceType === "rental" 
@@ -354,42 +376,17 @@ export default function Step1RentalSelection({ formData, updateFormData, hotelDa
         </select>
       </div>
 
-       {/* Date and Time Selection */}
-       <div className="grid md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-semibold text-neutral-700 mb-3">
-            Start Date <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <input
-              type="date"
-              value={formData.rentalDate || ''}
-              min={new Date().toISOString().split('T')[0]}
-              onChange={(e) => updateFormData('rentalDate', e.target.value)}
-              className="w-full px-6 py-4 pl-12 rounded-xl border-2 border-neutral-200 focus:border-amber-500 focus:outline-none transition-all text-lg"
-            />
-            <Calendar className="absolute left-4 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-neutral-700 mb-3">
-            Start Time <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <input
-              type="time"
-              value={formData.pickupTime || ''}
-              onChange={(e) => updateFormData('pickupTime', e.target.value)}
-              className="w-full px-6 py-4 pl-12 rounded-xl border-2 border-neutral-200 focus:border-amber-500 focus:outline-none transition-all text-lg"
-            />
-            <Clock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
-          </div>
-        </div>
-      </div>
+      {/* Date and Time Selection (Unified Component) */}
+      <DateTimeSection 
+         formData={formData}
+         updateFormData={updateFormData}
+         hotelData={hotelData}
+         validation={validation}
+         isSubmitting={isSubmitting} // Use local submitting state or pass correct one
+      />
 
       {/* Vehicle Selection Grid - Shows when all fields are valid */}
-      {formData.rentalDuration && formData.withDriver !== null && formData.returnLocation && formData.rentalDate && formData.pickupTime && (
+      {formData.rentalDuration && formData.withDriver !== null && formData.returnLocation && formData.rentalDate && formData.pickupTime && !validation.nightServiceRestricted && (
         <div className="space-y-4 animate-slideDown">
           <h3 className="text-xl font-bold text-neutral-800">Choose Your Vehicle</h3>
           <p className="text-sm text-neutral-600">

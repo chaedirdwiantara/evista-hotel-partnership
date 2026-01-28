@@ -87,6 +87,10 @@ export function useJourneySubmission(formData, hotelData, validation) {
          console.log('[Validation] Return time invalid');
          return false;
     }
+    if (validation?.nightServiceRestricted) {
+         console.log('[Validation] Blocked: Urgent Night Service restricted');
+         return false;
+    }
     
     if (isRental) {
       const hasRentalFields = formData.withDriver !== null && formData.rentalDuration && formData.returnLocation;

@@ -88,8 +88,23 @@ export default function DateTimeSection({
         </div>
       )}
 
-      {/* Urgent Night Service Warning */}
-      {(isPickupUrgentNight(formData) || isReturnUrgentNight(formData)) && (
+      {/* Urgent Night Service RESTRICTION (Blocking) */}
+      {validation.nightServiceRestricted && (
+        <div className="p-4 bg-red-50 border-2 border-red-200 rounded-xl animate-pulse">
+          <div className="flex items-start gap-3">
+            <div className="text-2xl">⛔</div>
+            <div>
+              <h3 className="font-bold text-red-800 mb-1">Booking Not Allowed</h3>
+              <p className="text-red-700 text-sm">
+                 Night service (00:00 - 06:00) bookings cannot be made within 24 hours outside of office hours (06:00 - 21:00). Please contact admin or choose a different time.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Urgent Night Service Warning (Non-blocking, if not restricted) */}
+      {!validation.nightServiceRestricted && (isPickupUrgentNight(formData) || isReturnUrgentNight(formData)) && (
         <div className="p-5 bg-amber-50 border-2 border-amber-200 rounded-xl">
           <div className="flex items-start gap-3">
             <div className="text-2xl">🌙</div>
