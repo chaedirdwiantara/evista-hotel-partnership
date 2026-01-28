@@ -90,86 +90,10 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
     }
   };
 
-  // Handle Trip Submission (Step 2 -> Step 3 conversion)
-  const handleStep2Submit = async () => {
-    try {
-      setLoading(true);
-      console.log('[Step 2] Submitting trip details...');
-
-      const orderType = formData.bookingType === 'rental' ? 'rental' : 'later';
-      
-      // 1. Prepare Trip Data
-      let tripData = {
-        order_type: orderType,
-        pickup_at: `${formData.pickupDate} ${formData.pickupTime}:00`,
-        hotel_slug: hotelData.slug, // Added per user request
-      };
-
-      // 2. Handle Fixed Route specific logic (Manual Destination already set pickup/dest in Step 1)
-      if (formData.selectedRoute) {
-        // Add route_id to payload (from API response via hotelData)
-        tripData.route_id = formData.selectedRoute;
-
-        // Set Pickup (Hotel)
-        const pickupLocation = {
-          lat: hotelData.coordinates?.lat || -6.1680722,
-          lng: hotelData.coordinates?.lng || 106.8349,
-          label: hotelData.name || 'Classic Hotel',
-          address: hotelData.address || 'Jl. K.H. Samanhudi No. 43-45, Pasar Baru, Jakarta Pusat',
-        };
-        await selectPickupLocation(pickupLocation, orderType);
-
-        // Set Destination (Selected Route)
-        const selectedRoute = hotelData.routes?.find(r => r.id === formData.selectedRoute);
-        const destinationLocation = {
-          lat: selectedRoute.destination?.lat || -6.2382699,
-          lng: selectedRoute.destination?.lng || 106.8553428,
-          label: selectedRoute.name || 'Destination',
-          address: selectedRoute.description || '',
-        };
-        await selectDestination(destinationLocation, orderType);
-      }
-      // 3. Handle Manual Destination (Seamless Swap - Manual)
-      else if (formData.manualDestination) {
-        // Exclude route_id as per user request
-        // Destination already selected via manual input
-      }
-
-      // 3. Add rental specific fields
-      if (formData.bookingType === 'rental') {
-        const returnDateTime = `${formData.returnDate} ${formData.returnTime}:00`;
-        tripData.return_at = returnDateTime;
-        tripData.is_with_driver = formData.withDriver ? 1 : 0;
-        tripData.is_same_return_location = formData.returnLocation === formData.pickupLocation ? 1 : 0;
-      }
-
-      // 4. Submit Trip (Create/Update Order)
-      console.log('[Step 2] Sending trip data:', tripData);
-      const tripResponse = await EvistaAPI.trips.submit(tripData);
-
-      if (tripResponse.code !== 200) {
-        throw new Error(tripResponse.message || 'Failed to create booking order');
-      }
-
-      const orderId = tripResponse.data?.id;
-      if (!orderId) throw new Error('No order ID returned from backend');
-
-      console.log('[Step 2] ✅ Order created/updated. ID:', orderId);
-      updateFormData('orderId', orderId);
-
-      // 5. Select Car Type (Important for pricing)
-      const carTypeId = formData.backendCarData?.id || formData.selectedVehicleClass || 1;
-      await EvistaAPI.cars.selectCar(carTypeId, orderType);
-
-      return true;
-    } catch (error) {
-      console.error('[Step 2] Submission Error:', error);
-      setFormError(error.message || 'Failed to process booking details. Please try again.');
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
+  // [REMOVED] handleStep2Submit - No longer needed
+  // Rental: Order created in Step1RentalSelection via auto-submit (line 115-233)
+  // Reservation: Order created in Step1JourneyBuilder via useJourneySubmission
+  // Both flows already have orderId by the time they reach Step 2 (Passenger Details)
 
   // Prepare for Step 4 (Checkout Overview)
   const initializeCheckout = async () => {
