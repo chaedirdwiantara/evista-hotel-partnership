@@ -16,11 +16,16 @@ export function useVehicleSelection() {
 
   /**
    * Filter cars based on allowed IDs
-   * Only Premium (2) and Economy+ (9) are allowed
+   * Only Premium (2) and Economy+ (9) are allowed for 'later' (Airport Transfer)
+   * For 'rental', show all available cars
    * @param {Array} rawCars - Raw car list from API
+   * @param {string} orderType - Order type ('later' or 'rental')
    * @returns {Array} Filtered car list
    */
-  const filterAllowedCars = (rawCars) => {
+  const filterAllowedCars = (rawCars, orderType = 'later') => {
+    if (orderType === 'rental') {
+      return rawCars; // Show all cars for rental
+    }
     const allowedCarIds = [2, 9]; // Premium (2), Economy+ (9)
     return rawCars.filter(car => allowedCarIds.includes(car.id));
   };
@@ -83,7 +88,7 @@ export function useVehicleSelection() {
       
       // Refresh car list
       const rawCars = await getCarList(orderType);
-      const filteredCars = filterAllowedCars(rawCars);
+      const filteredCars = filterAllowedCars(rawCars, orderType);
       setAvailableCars(filteredCars);
       
       // Update selected car data if it exists

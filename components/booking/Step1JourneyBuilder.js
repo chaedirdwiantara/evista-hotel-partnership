@@ -204,12 +204,42 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
   }, [formData.isRoundTrip]);
 
   /**
+   * Effect: clear orderId when rental fields change to trigger re-submission
+   * This ensures that isReadyToSubmit() returns true and a new order is created/updated
+   */
+  useEffect(() => {
+    if (formData.bookingType === 'rental' && formData.orderId) {
+      updateFormData('orderId', null);
+    }
+  }, [
+    formData.withDriver,
+    formData.rentalDuration,
+    formData.returnLocation,
+    formData.rentalDate,
+    formData.pickupTime
+  ]);
+
+  /**
    * Effect: Auto-submit journey when ready
    * Validation is now handled internally by journeySubmission.isReadyToSubmit()
    */
   useEffect(() => {
     const submitIfReady = async () => {
-      if (journeySubmission.isReadyToSubmit() && !journeySubmission.isSubmitting) {
+      const ready = journeySubmission.isReadyToSubmit();
+      console.log('[Journey Builder] Checking Auto-Submit:', { 
+        ready, 
+        isSubmitting: journeySubmission.isSubmitting,
+        bookingType: formData.bookingType,
+        rentalDate: formData.rentalDate,
+        pickupTime: formData.pickupTime,
+        orderId: formData.orderId,
+        validation: {
+           timeInvalid: dateTimeValidation.timeIsInvalid,
+           returnInvalid: dateTimeValidation.returnDateTimeIsInvalid
+        }
+      });
+      
+      if (ready && !journeySubmission.isSubmitting) {
         const result = await journeySubmission.submitJourney();
         
         if (result.success && result.orderId) {
@@ -234,9 +264,9 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
     formData.manualDestination,
     formData.routeId,            // Added: Watch routeId to prevent submitting without it
     formData.withDriver,
-    formData.withDriver,
-    formData.rentalDuration,
+    formData.rentalDuration,     // Fixed: Duplicate withDriver removed
     formData.returnLocation,
+    formData.rentalDate,         // Added: Watch rental date changes
     formData.isRoundTrip,        // Added: Watch trip type changes
     dateTimeValidation.timeIsInvalid,           // Added: Watch validation state
     dateTimeValidation.returnDateTimeIsInvalid  // Added: Watch return validation state

@@ -31,10 +31,10 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
     
     // Step 1 - Rental Specific
     withDriver: true,
-    rentalDuration: null, // "6_hours", "12_hours", etc
+    rentalDuration: "6_hours", // Default to 6 hours
     rentalDate: "",
     pickupLocation: "classic_hotel", // Fixed
-    returnLocation: null, // "classic_hotel" | "halim_airport"
+    returnLocation: "classic_hotel", // Default to same as pickup
     
     // Step 2
     pickupDate: "",
