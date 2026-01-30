@@ -53,6 +53,7 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
     
     // Order tracking (set in Step 1)
     orderId: null,
+    grandTotal: 0, // Set from /api/car/select response
   });
 
   // Payment state management
@@ -103,20 +104,16 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
       setLoading(true);
       console.log('[Step 4] Initializing checkout for order:', formData.orderId);
       
-      // 1. Get Payment Options
+      // Get Payment Options
       await loadPaymentOptions();
-
-      // 2. Get Checkout Overview (v3) - Validates order and gets final pricing
-      const overview = await EvistaAPI.checkout.getOverview();
-      console.log('[Step 4] Checkout Overview:', overview);
-
-      if (overview.code === 200 && overview.data) {
-        // Optional: Update local price/data from backend calculation if needed
-        // setGrandTotal(overview.data.grand_total); 
-      }
+      
+      // NOTE: We don't call /api/checkout/v3/overview anymore
+      // It's unreliable (pulls from DB, not session)
+      // grandTotal is already set from /api/car/select response
+      console.log('[Step 4] Using grandTotal from car selection:', formData.grandTotal);
+      
     } catch (error) {
-      console.error('[Step 4] Overview Error:', error);
-      // Don't block, just log. Payment might still work or fail gracefully.
+      console.error('[Step 4] Error loading payment options:', error);
     } finally {
       setLoading(false);
     }
@@ -380,25 +377,15 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
   };
 
   const calculatePrice = () => {
-    // Airport Transfer - Fixed Route pricing
-    if (formData.bookingType === "airport" && formData.serviceType === "fixPrice" && formData.selectedRoute && formData.selectedVehicleClass) {
-      const route = hotelData.routes.find(r => r.id === formData.selectedRoute);
-      if (!route || !route.pricing) return 0;
-      const pricing = route.pricing[formData.selectedVehicleClass];
-      if (!pricing) return 0;
-      return formData.isRoundTrip ? pricing.roundTrip : pricing.oneWay;
+    // Primary: Use grandTotal from /api/car/submit response
+    // Formula: basic_price + platform_fee - discount_amount
+    if (formData.grandTotal > 0) {
+      return formData.grandTotal;
     }
     
-    // Airport Transfer - Manual Destination pricing
-    if (formData.bookingType === "airport" && formData.serviceType === "fixPrice" && formData.manualDestination && formData.backendCarData) {
-      // Price comes from backend API response
-      return formData.backendCarData.start_from_price || 0;
-    }
-    
-    // Rental pricing
-    if (formData.bookingType === "rental" && formData.selectedVehicle && formData.rentalDuration) {
-      const { calculateRentalPrice } = require('@/lib/rental-pricing');
-      return calculateRentalPrice(formData.selectedVehicle.id, formData.rentalDuration, formData.withDriver);
+    // Fallback: Use start_from_price from /api/car/list (before car is selected)
+    if (formData.backendCarData?.start_from_price) {
+      return formData.backendCarData.start_from_price;
     }
     
     return 0;
@@ -560,6 +547,7 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
             formData={formData}
             updateFormData={updateFormData}
             calculatePrice={calculatePrice}
+            grandTotal={formData.grandTotal} // From /api/car/select response
             hotelData={hotelData}
             paymentOptions={paymentOptions}
             loading={loading}
@@ -581,7 +569,7 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
               </div>
             )}
             
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               {currentStep > 1 && (
                 <button onClick={prevStep} disabled={loading} className="px-6 py-3 rounded-lg font-semibold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 transition-all duration-300 disabled:opacity-50">
                   ← Back

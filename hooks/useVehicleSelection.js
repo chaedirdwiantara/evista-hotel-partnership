@@ -62,10 +62,22 @@ export function useVehicleSelection() {
       updateFormData('selectedVehicleClass', car.id);
       updateFormData('backendCarData', car);
       
+      // Call /api/car/submit (same as evista-customer)
       const response = await EvistaAPI.cars.selectCar(car.id, orderType);
       
       if (response.code === 200 && response.order?.id) {
         updateFormData('orderId', response.order.id);
+        
+        // Calculate grandTotal from order components
+        // Formula: basic_price + platform_fee - discount_amount
+        const order = response.order;
+        const basicPrice = order.basic_price || 0;
+        const platformFee = order.platform_fee || 0;
+        const discountAmount = order.discount_amount || 0;
+        const calculatedTotal = basicPrice + platformFee - discountAmount;
+        
+        updateFormData('grandTotal', calculatedTotal);
+        console.log('[Car Selection] Calculated grandTotal:', { basicPrice, platformFee, discountAmount, calculatedTotal });
       }
     } catch (error) {
       console.error('[Car Selection] Error:', error);

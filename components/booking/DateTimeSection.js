@@ -31,7 +31,16 @@ export default function DateTimeSection({
   };
 
   return (
-    <div className="space-y-6 animate-slideDown bg-gradient-to-br from-blue-50 to-white p-6 rounded-2xl border-2 border-blue-200">
+    <div className="space-y-6 animate-slideDown bg-gradient-to-br from-blue-50 to-white p-6 rounded-2xl border-2 border-blue-200 relative overflow-hidden">
+      {/* Loading Overlay */}
+      {isSubmitting && (
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center animate-fadeIn">
+          <div className="bg-white p-4 rounded-2xl shadow-lg border border-neutral-100 flex items-center gap-3">
+             <div className="w-5 h-5 border-2 border-neutral-200 border-t-amber-500 rounded-full animate-spin"></div>
+             <span className="text-sm font-medium text-neutral-600">Checking availability...</span>
+          </div>
+        </div>
+      )}
       <div className="flex items-center gap-3 mb-4">
         <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg" style={{ backgroundColor: hotelData.theme.accentColor }}>
           📅
@@ -206,13 +215,7 @@ export default function DateTimeSection({
         </div>
       )}
 
-      {/* Journey Submitting State */}
-      {isSubmitting && (
-        <div className="p-6 bg-neutral-50 rounded-xl text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: hotelData.theme.accentColor }}></div>
-          <p className="mt-4 text-neutral-600 font-medium">Creating your booking...</p>
-        </div>
-      )}
+
 
       {/* Journey Error */}
       {journeyError && (

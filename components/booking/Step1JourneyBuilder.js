@@ -130,7 +130,7 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
   /**
    * Handle fixed route selection
    */
-  const handleFixedRouteSelect = async (routeId) => {
+  const handleFixedRouteSelect = (routeId) => {
     updateFormData('manualDestination', null);
     updateFormData('backendCarData', null);
     updateFormData('selectedVehicleClass', null);
@@ -144,24 +144,38 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
     const route = hotelData.routes.find(r => r.id === routeId);
     if (!route) return;
 
-    // Initialize Trip (Pickup & Destination)
-    try {
-      const hotelPickupLocation = createHotelPickupLocation(hotelData);
-      
-      // 1. Set Pickup (Hotel) - Initializes the session
-      await selectPickupLocation(hotelPickupLocation, 'later');
-      
-      // selectDestination is NOT needed for fixed routes as the route ID handles the destination logic
-      // and calling it with invalid params caused 400 errors.
-      
-      // 2. Sync round trip status
-      const rtData = await setRoundTrip(formData.isRoundTrip);
-      if (rtData && rtData.id) {
-        updateFormData('routeId', rtData.id);
+    // Initialize Trip Session - Call selectLocation APIs immediately (non-blocking)
+    // This sets up the trip session in the backend before user selects time
+    const initializeSession = async () => {
+      try {
+        const hotelPickupLocation = createHotelPickupLocation(hotelData);
+        
+        // 1. Set Pickup Location (Hotel) - Initializes the session
+        await selectPickupLocation(hotelPickupLocation, 'later');
+        console.log('[Fixed Route] ✅ Pickup location set');
+        
+        // 2. Set Destination Location (Route destination)
+        const destinationLocation = {
+          lat: route.destination?.lat || -6.2382699,
+          long: route.destination?.lng || 106.8553428,
+          label: route.name || 'Destination',
+          address: route.description || '',
+        };
+        await selectDestination(destinationLocation, 'later');
+        console.log('[Fixed Route] ✅ Destination location set');
+        
+        // 3. Sync round trip status
+        const rtData = await setRoundTrip(formData.isRoundTrip);
+        if (rtData && rtData.id) {
+          updateFormData('routeId', rtData.id);
+        }
+        console.log('[Fixed Route] ✅ Session initialized');
+      } catch (error) {
+        console.error('[Fixed Route] ❌ Error initializing trip session:', error);
       }
-    } catch (error) {
-      console.error('[Fixed Route] Error initializing trip:', error);
-    }
+    };
+
+    initializeSession();
   };
 
   /**

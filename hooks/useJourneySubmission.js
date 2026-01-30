@@ -151,23 +151,9 @@ export function useJourneySubmission(formData, hotelData, validation) {
         if (formData.selectedRoute) {
           tripData.route_id = formData.selectedRoute;
           
-          // Set Pickup & Destination
-          const pickupLocation = {
-            lat: hotelData.coordinates?.lat || -6.1680722,
-            lng: hotelData.coordinates?.lng || 106.8349,
-            label: hotelData.name || 'Classic Hotel',
-            address: hotelData.address || 'Jl. K.H. Samanhudi No. 43-45, Pasar Baru, Jakarta Pusat',
-          };
-          await selectPickupLocation(pickupLocation, orderType);
-  
-          const selectedRoute = hotelData.routes?.find(r => r.id === formData.selectedRoute);
-          const destinationLocation = {
-            lat: selectedRoute.destination?.lat || -6.2382699,
-            long: selectedRoute.destination?.lng || 106.8553428,
-            label: selectedRoute.name || 'Destination',
-            address: selectedRoute.description || '',
-          };
-          await selectDestination(destinationLocation, orderType);
+          // NOTE: selectPickupLocation and selectDestination are already called
+          // in handleFixedRouteSelect when user selects the route.
+          // We don't need to call them again here.
         }
         // Flow 2: Manual Destination
         else if (formData.manualDestination) {

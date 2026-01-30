@@ -9,8 +9,9 @@ import { isUrgentNightBooking, buildUrgentNightMessage, sendWhatsAppMessage } fr
  * Step 4: Payment & Confirmation Component
  * Handles payment method selection and displays payment states
  */
-export default function Step4Payment({ formData, updateFormData, calculatePrice, hotelData, paymentOptions, loading, paymentState, handlePaymentSuccess, handlePaymentExpired, handlePaymentCancel, handlePaymentFailed }) {
-  const totalPrice = calculatePrice();
+export default function Step4Payment({ formData, updateFormData, calculatePrice, grandTotal, hotelData, paymentOptions, loading, paymentState, handlePaymentSuccess, handlePaymentExpired, handlePaymentCancel, handlePaymentFailed }) {
+  // Use backend calculation (grandTotal) if available, otherwise fallback to local
+  const totalPrice = grandTotal > 0 ? grandTotal : calculatePrice();
 
   // Map payment icons/emojis based on bank name
   const getPaymentIcon = (bankName = "") => {
@@ -131,7 +132,7 @@ export default function Step4Payment({ formData, updateFormData, calculatePrice,
   // Default: Show Payment Selection Form (idle state)
   return (
     <div className="space-y-10">
-      <h2 className="text-3xl font-bold mb-6" style={{ color: hotelData.theme.primaryColor }}>
+      <h2 className="text-2xl md:text-3xl font-bold mb-6" style={{ color: hotelData.theme.primaryColor }}>
         Payment & Confirmation
       </h2>
       
