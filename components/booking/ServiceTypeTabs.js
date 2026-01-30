@@ -28,18 +28,19 @@ export default function ServiceTypeTabs({ serviceType, onServiceTypeChange, hote
               flex-1 relative flex items-center justify-center gap-2.5 py-3.5 px-4 text-sm font-semibold rounded-xl
               transition-all duration-300 ease-out
               ${isActive 
-                ? 'bg-white shadow-md text-neutral-900' 
+                ? 'shadow-md' 
                 : 'text-neutral-500 hover:text-neutral-700'
               }
             `}
+            style={{
+              backgroundColor: isActive ? hotelData.theme.accentColor : undefined,
+              color: isActive ? hotelData.theme.primaryColor : undefined
+            }}
           >
             <Icon 
               className={`w-5 h-5 transition-colors duration-300 ${
                 isActive ? '' : 'text-neutral-400'
               }`}
-              style={{ 
-                color: isActive ? hotelData.theme.accentColor : undefined 
-              }}
             />
             <span>{tab.label}</span>
           </button>
