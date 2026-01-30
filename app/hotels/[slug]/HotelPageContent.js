@@ -27,8 +27,8 @@ export default function HotelPageContent({ hotelData: initialHotelData }) {
         const token = await EvistaAPI.auth.getUserToken();
         if (!token) return;
 
-        // Fetch Hotel Details
-        const hotelUrl = `${API_CONFIG.baseURL}/api/hotel/classic-hotel`;
+        // Fetch Hotel Details (via local proxy to avoid CORS)
+        const hotelUrl = `/api/hotel/classic-hotel`;
         const hotelRes = await fetch(hotelUrl, { 
           headers: { 
             'Authorization': `Bearer ${token}`,
@@ -60,8 +60,8 @@ export default function HotelPageContent({ hotelData: initialHotelData }) {
           }));
         }
 
-        // DEBUG: Fetch Routes (Requested by user)
-        const routesUrl = `${API_CONFIG.baseURL}/api/hotel/classic-hotel/routes`;
+        // Fetch Routes (via local proxy to avoid CORS)
+        const routesUrl = `/api/hotel/classic-hotel/routes`;
         const routesRes = await fetch(routesUrl, { 
           headers: { 
             'Authorization': `Bearer ${token}`,
