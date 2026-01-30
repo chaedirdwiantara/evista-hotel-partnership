@@ -297,7 +297,7 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
 
   return (
     <div className="space-y-8">
-      <h2 className="text-3xl font-bold mb-6" style={{ color: hotelData.theme.primaryColor }}>
+      <h2 className="text-3xl font-bold mb-6 text-center" style={{ color: hotelData.theme.primaryColor }}>
         Plan Your Journey
       </h2>
       

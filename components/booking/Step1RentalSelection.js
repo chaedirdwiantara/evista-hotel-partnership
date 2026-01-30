@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { calculateRentalPrice, getRentalDurations, formatPrice } from '@/lib/rental-pricing';
 import { Car, CalendarCheck, UserCheck, Key, MapPin, Calendar, Clock } from 'lucide-react';
 import { EvistaAPI } from '@/lib/evista-api';
+import ServiceTypeTabs from './ServiceTypeTabs';
 import { getCarList, selectPickupLocation, selectDestination } from '@/lib/manual-destination-api';
 
 /**
@@ -232,67 +233,40 @@ export default function Step1RentalSelection({ formData, updateFormData, hotelDa
     hotelData.location
   ]);
 
+  // Handler for service type change
+  const handleServiceTypeChange = (serviceType, bookingType) => {
+    updateFormData("serviceType", serviceType);
+    updateFormData("bookingType", bookingType);
+
+    // Cleanup Logic on Mode Switch
+    if (bookingType === 'rental') {
+      // Switching TO Rental -> Clear Reservation Data + Shared Time
+      updateFormData("selectedRoute", null);
+      updateFormData("selectedVehicleClass", null);
+      updateFormData("pickupTime", "");
+      updateFormData("orderId", null);
+      updateFormData("selectedVehicle", null);
+      updateFormData("manualDestination", null);
+    } else {
+      // Switching TO Reservation -> Clear Rental Data + Shared Time
+      updateFormData("rentalDate", "");
+      updateFormData("rentalDuration", ""); 
+      updateFormData("pickupTime", "");
+      updateFormData("orderId", null);
+      updateFormData("selectedVehicle", null);
+    }
+  };
+
   return (
     <div className="space-y-8 animate-slideDown">
-      <h2 className="text-3xl font-bold mb-6" style={{ color: hotelData.theme.primaryColor }}>Select Your Service</h2>
+      <h2 className="text-3xl font-bold mb-6 text-center" style={{ color: hotelData.theme.primaryColor }}>Select Your Service</h2>
       
       {/* Service Type Selection - Tab Switcher */}
-      <div className="flex gap-4">
-        <button 
-          onClick={() => {
-            // Switch to Reservation (Airport Transfer)
-            updateFormData("serviceType", "fixPrice");
-            updateFormData("bookingType", "airport");
-            
-            // Cleanup Rental Data
-            updateFormData("rentalDate", "");
-            updateFormData("rentalDuration", ""); 
-            updateFormData("pickupTime", "");
-            updateFormData("orderId", null); // Reset order
-            updateFormData("selectedVehicle", null);
-          }} 
-          className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 ${
-            formData.serviceType === "fixPrice" 
-              ? "shadow-md scale-[1.02]" 
-              : "bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-500"
-          }`} 
-          style={{ 
-            backgroundColor: formData.serviceType === "fixPrice" ? hotelData.theme.accentColor : undefined, 
-            color: formData.serviceType === "fixPrice" ? hotelData.theme.primaryColor : undefined,
-            borderColor: formData.serviceType === "fixPrice" ? 'transparent' : undefined
-          }}
-        >
-          <CalendarCheck className={`w-5 h-5 ${formData.serviceType === "fixPrice" ? "" : "text-neutral-400"}`} />
-          <span>Reservation</span>
-        </button>
-        <button 
-          onClick={() => {
-            // Switch to Rental
-            updateFormData("serviceType", "rental");
-            updateFormData("bookingType", "rental");
-            
-            // Cleanup Reservation Data
-            updateFormData("selectedRoute", null);
-            updateFormData("selectedVehicleClass", null);
-            updateFormData("pickupTime", "");
-            updateFormData("orderId", null); // Reset order
-            updateFormData("selectedVehicle", null);
-          }} 
-          className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 ${
-            formData.serviceType === "rental" 
-              ? "shadow-md scale-[1.02]" 
-              : "bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-500"
-          }`} 
-          style={{ 
-            backgroundColor: formData.serviceType === "rental" ? hotelData.theme.accentColor : undefined, 
-            color: formData.serviceType === "rental" ? hotelData.theme.primaryColor : undefined,
-            borderColor: formData.serviceType === "rental" ? 'transparent' : undefined
-          }}
-        >
-          <Car className={`w-5 h-5 ${formData.serviceType === "rental" ? "" : "text-neutral-400"}`} />
-          <span>Car Rental</span>
-        </button>
-      </div>
+      <ServiceTypeTabs
+        serviceType={formData.serviceType}
+        onServiceTypeChange={handleServiceTypeChange}
+        hotelData={hotelData}
+      />
 
       {/* With Driver Toggle */}
       <div>

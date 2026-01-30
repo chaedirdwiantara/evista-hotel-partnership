@@ -72,14 +72,16 @@ export default function DestinationSelection({
             />
 
             {/* SEAMLESS SWAP TOGGLE: Go to Manual */}
-            <div className="flex justify-center pt-2">
+            <div className="flex justify-center pt-4">
                <button
                 type="button"
                 onClick={() => handleModeChange('manual')}
-                className="group flex items-center gap-2 text-sm font-medium text-neutral-500 hover:text-neutral-800 transition-colors"
+                className="group flex items-center gap-2.5 text-sm text-neutral-500 hover:text-neutral-800 transition-all duration-200"
               >
-                <Search className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span>Can't find your destination? <span className="underline decoration-dotted underline-offset-4">Search manually</span></span>
+                <Search className="hidden md:block w-4 h-4 text-neutral-400 group-hover:text-neutral-600 transition-colors" />
+                <span className="font-normal">
+                  Can't find your destination? <span className="font-medium underline decoration-dotted underline-offset-4">Search manually</span>
+                </span>
               </button>
             </div>
           </div>

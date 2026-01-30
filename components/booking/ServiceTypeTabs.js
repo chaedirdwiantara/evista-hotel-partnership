@@ -6,51 +6,45 @@ import { Car, CalendarCheck } from 'lucide-react';
  * ServiceTypeTabs Component
  * 
  * Service type selection tabs (Reservation vs Car Rental).
- * Extracted from Step1JourneyBuilder.js (lines 346-388)
- * 
- * @param {Object} props
- * @param {string} props.serviceType - Current service type ('fixPrice' or 'rental')
- * @param {Function} props.onServiceTypeChange - Handler for service type change
- * @param {Object} props.hotelData - Hotel configuration for theme
+ * Redesigned as a modern Segmented Control (Pill-shaped).
  */
 export default function ServiceTypeTabs({ serviceType, onServiceTypeChange, hotelData }) {
+  const tabs = [
+    { id: "fixPrice", label: "Reservation", icon: CalendarCheck, type: "airport" },
+    ...(hotelData.services.rental.enabled ? [{ id: "rental", label: "Car Rental", icon: Car, type: "rental" }] : [])
+  ];
+
   return (
-    <div className="flex gap-4">
-      <button 
-        onClick={() => onServiceTypeChange("fixPrice", "airport")} 
-        className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 ${
-          serviceType === "fixPrice" 
-            ? "shadow-md scale-[1.02]" 
-            : "bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-500"
-        }`} 
-        style={{ 
-          backgroundColor: serviceType === "fixPrice" ? hotelData.theme.accentColor : undefined, 
-          color: serviceType === "fixPrice" ? hotelData.theme.primaryColor : undefined,
-          borderColor: serviceType === "fixPrice" ? 'transparent' : undefined
-        }}
-      >
-        <CalendarCheck className={`w-5 h-5 ${serviceType === "fixPrice" ? "" : "text-neutral-400"}`} />
-        <span>Reservation</span>
-      </button>
-      
-      {hotelData.services.rental.enabled && (
-        <button 
-          onClick={() => onServiceTypeChange("rental", "rental")} 
-          className={`flex-1 py-4 px-6 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-3 ${
-            serviceType === "rental" 
-              ? "shadow-md scale-[1.02]" 
-              : "bg-white border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-500"
-          }`} 
-          style={{ 
-            backgroundColor: serviceType === "rental" ? hotelData.theme.accentColor : undefined, 
-            color: serviceType === "rental" ? hotelData.theme.primaryColor : undefined,
-            borderColor: serviceType === "rental" ? 'transparent' : undefined
-          }}
-        >
-          <Car className={`w-5 h-5 ${serviceType === "rental" ? "" : "text-neutral-400"}`} />
-          <span>Car Rental</span>
-        </button>
-      )}
+    <div className="bg-neutral-100 p-1.5 rounded-2xl flex relative w-full gap-1">
+      {tabs.map((tab) => {
+        const isActive = serviceType === tab.id;
+        const Icon = tab.icon;
+        
+        return (
+          <button
+            key={tab.id}
+            onClick={() => onServiceTypeChange(tab.id, tab.type)}
+            className={`
+              flex-1 relative flex items-center justify-center gap-2.5 py-3.5 px-4 text-sm font-semibold rounded-xl
+              transition-all duration-300 ease-out
+              ${isActive 
+                ? 'bg-white shadow-md text-neutral-900' 
+                : 'text-neutral-500 hover:text-neutral-700'
+              }
+            `}
+          >
+            <Icon 
+              className={`w-5 h-5 transition-colors duration-300 ${
+                isActive ? '' : 'text-neutral-400'
+              }`}
+              style={{ 
+                color: isActive ? hotelData.theme.accentColor : undefined 
+              }}
+            />
+            <span>{tab.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
