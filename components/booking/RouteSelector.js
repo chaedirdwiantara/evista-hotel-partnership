@@ -67,7 +67,7 @@ export default function RouteSelector({
           <div className="flex-1 min-w-0">
             {selectedRoute ? (
               <>
-                <h4 className="font-bold text-lg truncate" style={{ color: hotelData.theme.primaryColor }}>
+                <h4 className="font-bold text-base md:text-lg break-words leading-tight" style={{ color: hotelData.theme.primaryColor }}>
                   {selectedRoute.name}
                 </h4>
                 <p className="text-sm text-neutral-500">
