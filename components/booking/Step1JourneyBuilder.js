@@ -97,6 +97,10 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
   /**
    * Handle manual destination selection
    */
+  /**
+   * Handle manual destination selection
+   * Uses optimistic update: UI updates immediately, API calls run in background
+   */
   const handleManualDestinationSelect = async (destination) => {
     console.log('[Journey Builder] handleManualDestinationSelect:', destination);
     
@@ -111,18 +115,24 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
       return;
     }
     
+    // Optimistic update: Show time component immediately
+    updateFormData('selectedRoute', null);
+    updateFormData('selectedVehicleClass', null);
+    updateFormData('selectedVehicle', null);
+    updateFormData('manualDestination', destination);
+    setDestinationError(null);
+    
+    // Run API calls in background (non-blocking)
     try {
-      setDestinationError(null);
       const hotelPickupLocation = createHotelPickupLocation(hotelData);
       
-      await selectPickupLocation(hotelPickupLocation, 'later');
-      await selectDestination(destination, 'later');
-      const rtData = await setRoundTrip(formData.isRoundTrip);
+      // API calls run in parallel for faster execution
+      const [_, __, rtData] = await Promise.all([
+        selectPickupLocation(hotelPickupLocation, 'later'),
+        selectDestination(destination, 'later'),
+        setRoundTrip(formData.isRoundTrip)
+      ]);
       
-      updateFormData('selectedRoute', null);
-      updateFormData('selectedVehicleClass', null);
-      updateFormData('selectedVehicle', null);
-      updateFormData('manualDestination', destination);
       if (rtData && rtData.id) {
         updateFormData('routeId', rtData.id);
       }
