@@ -53,35 +53,42 @@ export function useVehicleSelection() {
 
   /**
    * Handle car selection (for manual destinations)
+   * Only updates UI state - API call moved to Continue button
    * @param {Object} car - Selected car object
    * @param {string} orderType - 'later' or 'rental'
    * @param {Function} updateFormData - Form data update function
    */
   const handleCarSelect = async (car, orderType, updateFormData) => {
-    try {
-      updateFormData('selectedVehicleClass', car.id);
-      updateFormData('backendCarData', car);
+    // Only update UI state - API call happens on Continue button
+    updateFormData('selectedVehicleClass', car.id);
+    updateFormData('backendCarData', car);
+  };
+
+  /**
+   * Submit car selection to API (called from Continue button)
+   * @param {number} carTypeId - Selected car type ID
+   * @param {string} orderType - 'later' or 'rental'
+   * @returns {Promise<Object>} Response with orderId and grandTotal
+   */
+  const submitCarSelection = async (carTypeId, orderType) => {
+    const response = await EvistaAPI.cars.selectCar(carTypeId, orderType);
+    
+    if (response.code === 200 && response.order?.id) {
+      // Calculate grandTotal from order components
+      const order = response.order;
+      const basicPrice = order.basic_price || 0;
+      const platformFee = order.platform_fee || 0;
+      const discountAmount = order.discount_amount || 0;
+      const calculatedTotal = basicPrice + platformFee - discountAmount;
       
-      // Call /api/car/submit (same as evista-customer)
-      const response = await EvistaAPI.cars.selectCar(car.id, orderType);
-      
-      if (response.code === 200 && response.order?.id) {
-        updateFormData('orderId', response.order.id);
-        
-        // Calculate grandTotal from order components
-        // Formula: basic_price + platform_fee - discount_amount
-        const order = response.order;
-        const basicPrice = order.basic_price || 0;
-        const platformFee = order.platform_fee || 0;
-        const discountAmount = order.discount_amount || 0;
-        const calculatedTotal = basicPrice + platformFee - discountAmount;
-        
-        updateFormData('grandTotal', calculatedTotal);
-        console.log('[Car Selection] Calculated grandTotal:', { basicPrice, platformFee, discountAmount, calculatedTotal });
-      }
-    } catch (error) {
-      console.error('[Car Selection] Error:', error);
+      return {
+        success: true,
+        orderId: response.order.id,
+        grandTotal: calculatedTotal
+      };
     }
+    
+    throw new Error(response.message || 'Failed to submit car selection');
   };
 
   /**
@@ -130,6 +137,7 @@ export function useVehicleSelection() {
     isLoadingCars,
     loadAvailableCars,
     handleCarSelect,
+    submitCarSelection,
     updateRoundTripAndRefreshCars,
     clearVehicles,
     filterAllowedCars,

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { EvistaAPI } from "@/lib/evista-api";
 import { selectPickupLocation, selectDestination } from "@/lib/manual-destination-api";
 import { isUrgentNightBooking, buildUrgentNightMessage, sendWhatsAppMessage, sendAdminAutoNotification } from "@/lib/whatsapp-utils";
+import { useVehicleSelection } from "@/hooks/useVehicleSelection";
 import PaymentWaiting from "./PaymentWaiting";
 import Step1JourneyBuilder from "./booking/Step1JourneyBuilder";
 import Step1RentalSelection from "./booking/Step1RentalSelection";
@@ -68,6 +69,9 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
   });
 
   const [formError, setFormError] = useState(null);
+  
+  // Vehicle selection hook for car submit
+  const vehicleSelection = useVehicleSelection();
 
   // Initialize Step 3 (Payment & Overview)
   useEffect(() => {
@@ -312,22 +316,68 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
   };
 
   const nextStep = async () => {
-    // Note: Trip submission now happens in Step1JourneyBuilder automatically
-    // We only need validation before Step 2 (Passenger Details)
+    // Step 1 -> Step 2: Submit car selection via API
     if (currentStep === 1) {
-      // Journey must be submitted (orderId exists)
-      if (!formData.orderId) {
-        setFormError("Please complete your journey selection first.");
+      // Validate car is selected
+      if (!formData.selectedVehicleClass) {
+        setFormError("Please select a vehicle class first.");
         return;
       }
+      
+      // Save scroll position before async operation
+      const scrollY = window.scrollY;
+      
+      try {
+        setLoading(true);
+        setFormError(null);
+        
+        // Determine order type based on booking type
+        const orderType = formData.bookingType === 'rental' ? 'rental' : 'later';
+        
+        // Call /api/car/submit via hook
+        const result = await vehicleSelection.submitCarSelection(
+          formData.selectedVehicleClass,
+          orderType
+        );
+        
+        if (result.success) {
+          updateFormData('orderId', result.orderId);
+          updateFormData('grandTotal', result.grandTotal);
+          console.log('[Continue] ✅ Car submitted, orderId:', result.orderId);
+          
+          // Navigate to step 2
+          setCurrentStep(2);
+          
+          // Restore scroll position after navigation
+          requestAnimationFrame(() => {
+            window.scrollTo(0, scrollY);
+          });
+        }
+        
+      } catch (error) {
+        console.error('[Continue] ❌ Car submission error:', error);
+        setFormError(error.message || 'Failed to process booking. Please try again.');
+        
+        // Restore scroll position on error too
+        requestAnimationFrame(() => {
+          window.scrollTo(0, scrollY);
+        });
+      } finally {
+        setLoading(false);
+      }
+      return; // Exit early - navigation handled above
     }
     
+    // Other steps: simple navigation with scroll prevention
     if (currentStep < totalSteps) {
-      const nextStepNum = currentStep + 1;
+      const scrollY = window.scrollY;
       setFormError(null);
-      setCurrentStep(nextStepNum);
-
-      // Step 3 (Payment) Initialization handled by useEffect now to avoid double calls
+      setCurrentStep(currentStep + 1);
+      
+      // Restore scroll position
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollY);
+      });
     }
   };
 
