@@ -8,6 +8,7 @@ import { selectPickupLocation, selectDestination, setRoundTrip } from '@/lib/man
 import { useDateTimeValidation } from '@/hooks/useDateTimeValidation';
 import { useJourneySubmission } from '@/hooks/useJourneySubmission';
 import { useVehicleSelection } from '@/hooks/useVehicleSelection';
+import { useRentalSubmission } from '@/hooks/useRentalSubmission';
 
 // Utility Functions
 import { 
@@ -22,6 +23,7 @@ import {
 import ServiceTypeTabs from './ServiceTypeTabs';
 import DestinationSelection from './DestinationSelection';
 import RentalFields from './RentalFields';
+import RentalVehicleGrid from './RentalVehicleGrid';
 import DateTimeSection from './DateTimeSection';
 import VehicleClassSelection from './VehicleClassSelection';
 import TripTypeSelector from './TripTypeSelector';
@@ -43,6 +45,7 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
   const dateTimeValidation = useDateTimeValidation(formData);
   const journeySubmission = useJourneySubmission(formData, hotelData, dateTimeValidation);
   const vehicleSelection = useVehicleSelection();
+  const rentalSubmission = useRentalSubmission(formData, hotelData, updateFormData);
 
   // ==================
   // COMPUTED VALUES
@@ -81,6 +84,7 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
       updateFormData("selectedVehicle", null);
       updateFormData("manualDestination", null);
       vehicleSelection.clearVehicles();
+      rentalSubmission.clearVehicles();
     } else {
       // Switching TO Reservation -> Clear Rental Data + All DateTime
       updateFormData("rentalDate", "");
@@ -218,6 +222,29 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
     updateFormData("isRoundTrip", isRoundTrip);
   };
 
+  /**
+   * Handle rental vehicle selection
+   * Selects vehicle and updates form data, then submits to API
+   */
+  const handleRentalVehicleSelect = async (vehicle) => {
+    try {
+      console.log('[Rental] Selecting Vehicle:', vehicle.id);
+      
+      // Update form data
+      updateFormData("selectedVehicle", vehicle);
+      updateFormData("selectedVehicleClass", vehicle.id);
+      
+      // Store price for display  
+      if (vehicle.start_from_price) {
+        updateFormData("grandTotal", vehicle.start_from_price);
+      }
+      
+      console.log('[Rental] ✅ Vehicle selected:', vehicle.name);
+    } catch (err) {
+      console.error('[Rental] Error selecting vehicle:', err);
+    }
+  };
+
   // ==================
   // EFFECTS
   // ==================
@@ -266,6 +293,25 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
     formData.returnLocation,
     formData.rentalDate,
     formData.pickupTime
+  ]);
+
+  /**
+   * Effect: Auto-submit rental trip when ready
+   */
+  useEffect(() => {
+    if (formData.bookingType === 'rental' && rentalSubmission.isReadyToSubmit() && !rentalSubmission.isSubmitting) {
+      const timer = setTimeout(() => {
+        rentalSubmission.submitRentalTrip();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [
+    formData.withDriver,
+    formData.rentalDuration,
+    formData.returnLocation,
+    formData.rentalDate,
+    formData.pickupTime,
+    formData.orderId
   ]);
 
   /**
@@ -377,6 +423,18 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
           validation={dateTimeValidation}
           isSubmitting={journeySubmission.isSubmitting}
           journeyError={journeySubmission.error}
+        />
+      )}
+
+      {/* RENTAL VEHICLE SELECTION */}
+      {formData.serviceType === "rental" && formData.orderId && !dateTimeValidation.nightServiceRestricted && (
+        <RentalVehicleGrid
+          vehicles={rentalSubmission.availableCars.length > 0 ? rentalSubmission.availableCars : hotelData.fleet}
+          selectedVehicle={formData.selectedVehicle}
+          onSelectVehicle={handleRentalVehicleSelect}
+          hotelData={hotelData}
+          formData={formData}
+          isSubmitting={rentalSubmission.isSubmitting}
         />
       )}
 

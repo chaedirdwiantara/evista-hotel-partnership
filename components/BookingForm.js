@@ -7,7 +7,6 @@ import { isUrgentNightBooking, buildUrgentNightMessage, sendWhatsAppMessage, sen
 import { useVehicleSelection } from "@/hooks/useVehicleSelection";
 import PaymentWaiting from "./PaymentWaiting";
 import Step1JourneyBuilder from "./booking/Step1JourneyBuilder";
-import Step1RentalSelection from "./booking/Step1RentalSelection";
 import Step2PassengerDetails from "./booking/Step3PassengerDetails";
 import Step3Payment from "./booking/Step4Payment";
 
@@ -96,8 +95,8 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
   };
 
   // [REMOVED] handleStep2Submit - No longer needed
-  // Rental: Order created in Step1RentalSelection via auto-submit (line 115-233)
-  // Reservation: Order created in Step1JourneyBuilder via useJourneySubmission
+  // Both rental and reservation flows now use Step1JourneyBuilder
+  // Order is created via useJourneySubmission (reservation) or useRentalSubmission (rental)
   // Both flows already have orderId by the time they reach Step 2 (Passenger Details)
 
   // Prepare for Step 4 (Checkout Overview)
@@ -573,16 +572,12 @@ export default function BookingForm({ hotelData, bookingType = "airport" }) {
 
       {/* Form Content */}
       <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-12">
-        {/* Step 1: Unified Journey Builder for Airport */}
-        {currentStep === 1 && formData.bookingType === "airport" && (
-          <Step1JourneyBuilder formData={formData} updateFormData={updateFormData} hotelData={hotelData} />
-        )}
-        {currentStep === 1 && formData.bookingType === "rental" && (
-          <Step1RentalSelection 
+        {/* Step 1: Unified Journey Builder for All Booking Types */}
+        {currentStep === 1 && (
+          <Step1JourneyBuilder 
             formData={formData} 
             updateFormData={updateFormData} 
             hotelData={hotelData}
-            onContinue={() => setCurrentStep(2)}
           />
         )}
         
