@@ -26,20 +26,48 @@ export default function Step4Payment({ formData, updateFormData, calculatePrice,
   // Payment Success State
   if (paymentState?.status === 'success') {
     return (
-      <div className="text-center py-12 animate-fadeIn">
-        <div className="text-8xl mb-8">🎉</div>
-        <h2 className="text-4xl font-bold mb-4" style={{ color: hotelData.theme.primaryColor }}>
+      <div className="text-center py-8 md:py-12 animate-fadeIn px-4">
+        <div className="text-6xl md:text-8xl mb-6 md:mb-8 mx-auto animate-bounce-slow">🎉</div>
+        <h2 className="text-3xl md:text-4xl font-bold mb-3 md:mb-4" style={{ color: hotelData.theme.primaryColor }}>
           Booking Confirmed!
         </h2>
-        <p className="text-xl text-neutral-600 mb-8 max-w-lg mx-auto">
-          Thank you, {formData.passengerName}. Your booking has been successfully processed. 
+        <p className="text-lg md:text-xl text-neutral-600 mb-8 max-w-lg mx-auto leading-relaxed">
+          Thank you, <span className="font-semibold">{formData.passengerName}</span>. Your booking has been successfully processed. 
           Our driver will contact you via WhatsApp shortly.
         </p>
-        <div className="bg-neutral-50 p-8 rounded-3xl mb-12 max-w-md mx-auto border-2 border-neutral-100">
-          <p className="text-sm text-neutral-500 uppercase tracking-widest mb-2 font-bold">Order Code</p>
-          <p className="text-3xl font-mono font-bold" style={{ color: hotelData.theme.accentColor }}>
-            {paymentState.bookingId || paymentState.orderId}
-          </p>
+        
+        <div className="bg-white rounded-3xl mb-10 max-w-sm mx-auto border border-neutral-100 shadow-xl shadow-neutral-200/50 overflow-hidden">
+           <div className="h-2 w-full bg-gradient-to-r from-green-400 to-emerald-500"></div>
+           <div className="p-6 md:p-8 flex items-center justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                 <p className="text-xs text-neutral-400 uppercase tracking-widest mb-1 font-bold">Order Code</p>
+                 <p className="text-2xl md:text-3xl font-mono font-bold tracking-wider break-all" style={{ color: hotelData.theme.accentColor }}>
+                   {paymentState.bookingId || paymentState.orderId}
+                 </p>
+              </div>
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(paymentState.bookingId || paymentState.orderId);
+                  // Optional: You could add a temporary toast or state change here
+                  const btn = document.getElementById('copy-order-btn');
+                  if(btn) {
+                    const originalContent = btn.innerHTML;
+                    btn.innerHTML = '<span class="text-green-600">✓</span>';
+                    setTimeout(() => { btn.innerHTML = originalContent }, 2000);
+                  }
+                }}
+                id="copy-order-btn"
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 transition-colors flex-shrink-0"
+                title="Copy Order Code"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </button>
+           </div>
+           <div className="bg-neutral-50 p-3 text-xs text-neutral-400 border-t border-neutral-100">
+             Show this code to your driver
+           </div>
         </div>
         
         {/* Urgent Night Booking - Manual WhatsApp Contact */}
