@@ -22,7 +22,13 @@ export default function VehicleClassSelection({
       
       {!isLoadingCars && availableCars.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {availableCars.map((car) => {
+          {availableCars.filter(car => {
+            const isExcludedId = String(car.id) === '1';
+            const isEconomyClass = car.vehicleClass?.toLowerCase() === 'economy' || 
+                                  car.category?.toLowerCase() === 'economy' ||
+                                  car.typename?.toLowerCase() === 'economy';
+            return !isExcludedId && !isEconomyClass;
+          }).map((car) => {
             // For fixed routes: use configured pricing from hotelData
             // For manual routes: use API pricing
             let displayPrice = car.start_from_price || 0;

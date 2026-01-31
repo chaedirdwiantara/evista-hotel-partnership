@@ -17,8 +17,17 @@ export default function RentalVehicleGrid({
     return calculateRentalPrice(vehicle.id, formData.rentalDuration, formData.withDriver);
   };
 
+  // Filter out Economy vehicles (ID 1 or class "economy")
+  const filteredVehicles = vehicles?.filter(vehicle => {
+    const isExcludedId = String(vehicle.id) === '1';
+    const isEconomyClass = vehicle.vehicleClass?.toLowerCase() === 'economy' || 
+                           vehicle.category?.toLowerCase() === 'economy' ||
+                           vehicle.typename?.toLowerCase() === 'economy';
+    return !isExcludedId && !isEconomyClass;
+  }) || [];
+
   // No vehicles to display
-  if (!vehicles || vehicles.length === 0) {
+  if (filteredVehicles.length === 0) {
     return (
       <div className="text-center py-8 text-neutral-500">
         <p>No vehicles available for this selection.</p>
@@ -34,7 +43,7 @@ export default function RentalVehicleGrid({
       </p>
 
       <div className="grid md:grid-cols-2 gap-6">
-        {vehicles.map((vehicle) => {
+        {filteredVehicles.map((vehicle) => {
           // Handle both API response structure and Mock data structure
           // API cars have .id, .media.url, .seats_count, .brand, .typename
           const price = vehicle.start_from_price || getVehiclePrice(vehicle) || 0;
