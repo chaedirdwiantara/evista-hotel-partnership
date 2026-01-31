@@ -215,7 +215,16 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
    * Handle car selection for both fixed and manual destinations
    */
   const handleCarSelect = async (car) => {
+    // Store full car object correctly
+    updateFormData('selectedVehicle', car);
+    updateFormData('selectedVehicleClass', car.id);
+    
+    // For manual/later booking, we need to submit this to backend to get orderId
     const orderType = formData.bookingType === 'rental' ? 'rental' : 'later';
+    
+    console.log('[Journey] Vehicle Selected:', car.typename);
+    
+    // Trigger submission logic
     await vehicleSelection.handleCarSelect(car, orderType, updateFormData);
   };
 

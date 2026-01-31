@@ -137,48 +137,112 @@ export default function Step4Payment({ formData, updateFormData, calculatePrice,
       </h2>
       
       {/* Booking Summary Card */}
-      <div className="p-8 bg-neutral-50 rounded-3xl border-2 border-neutral-100 shadow-sm">
-        <h3 className="font-bold text-xl mb-6 flex items-center gap-3">
-          <span>📝</span> Booking Summary
-        </h3>
-        <div className="space-y-4">
-          <div className="flex justify-between py-3 border-b border-neutral-200">
-            <span className="text-neutral-600">Service</span>
-            <span className="font-semibold">{formData.serviceType === "fixPrice" ? "Reservation" : "Rental"}</span>
+      {/* Booking Summary Card - Luxury Grid Layout */}
+      <div className="bg-neutral-50/50 rounded-3xl border border-neutral-100 shadow-sm overflow-hidden">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-neutral-100 bg-white/50 backdrop-blur-sm">
+          <h3 className="font-bold text-lg flex items-center gap-2 text-neutral-800">
+            <span>📝</span> Booking Summary
+          </h3>
+        </div>
+
+        {/* Content List */}
+        <div className="p-6 space-y-4">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-1 md:gap-4 border-b border-neutral-200/50 pb-3 last:border-0 last:pb-0">
+            <span className="text-sm text-neutral-500 font-medium uppercase tracking-wide">Service</span>
+            <span className="font-bold text-neutral-800 text-lg">
+              {formData.serviceType === "fixPrice" ? "Reservation" : "Rental"}
+            </span>
           </div>
+
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-1 md:gap-4 border-b border-neutral-200/50 pb-3">
+             <span className="text-sm text-neutral-500 font-medium uppercase tracking-wide">Trip Type</span>
+             <span className="font-bold text-neutral-800">
+               {formData.serviceType === "rental" 
+                  ? "Daily Rental" 
+                  : (formData.isRoundTrip ? "Round Trip (PP)" : "One Way Trip")}
+             </span>
+          </div>
+
+          {formData.rentalDate ? (
+            // RENTAL DATE/TIME
+             <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-1 md:gap-4 border-b border-neutral-200/50 pb-3">
+              <span className="text-sm text-neutral-500 font-medium uppercase tracking-wide">Date & Time</span>
+              <div className="text-left md:text-right">
+                <span className="font-bold text-neutral-800 block">
+                  {new Date(formData.rentalDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </span>
+                <span className="text-sm text-neutral-600">
+                   {formData.pickupTime} • {formData.rentalDuration?.replace('_', ' ')}
+                </span>
+              </div>
+            </div>
+          ) : (
+            // RESERVATION DATE/TIME
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-1 md:gap-4 border-b border-neutral-200/50 pb-3">
+              <span className="text-sm text-neutral-500 font-medium uppercase tracking-wide">Date & Time</span>
+              <div className="text-left md:text-right">
+                {formData.pickupDate && (
+                  <span className="font-bold text-neutral-800 block">
+                    {new Date(formData.pickupDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} • {formData.pickupTime}
+                  </span>
+                )}
+                {formData.isRoundTrip && formData.returnDate && (
+                   <span className="text-xs text-neutral-500 block mt-1">
+                     Return: {new Date(formData.returnDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} • {formData.returnTime}
+                   </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {formData.selectedRoute && (
-            <div className="flex justify-between py-3 border-b border-neutral-200">
-              <span className="text-neutral-600">Route</span>
-              <span className="font-semibold text-right">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1 md:gap-4 border-b border-neutral-200/50 pb-3">
+              <span className="text-sm text-neutral-500 font-medium uppercase tracking-wide md:pt-1">Route</span>
+              <span className="font-bold text-neutral-800 md:text-right md:max-w-[60%] leading-snug">
                 {hotelData.routes.find(r => r.id === formData.selectedRoute)?.name}
               </span>
             </div>
           )}
-          {formData.isRoundTrip && (
-            <div className="flex justify-between py-3 border-b border-neutral-200">
-              <span className="text-neutral-600">Trip Type</span>
-              <span className="font-semibold">Round Trip (PP)</span>
-            </div>
-          )}
+
           {formData.selectedVehicle && (
-            <div className="flex justify-between py-3 border-b border-neutral-200">
-              <span className="text-neutral-600">Vehicle</span>
-              <span className="font-semibold text-right">
-                {hotelData.fleet.find(v => v.id === formData.selectedVehicle)?.name || 'Selected Vehicle'}
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-1 md:gap-4 border-b border-neutral-200/50 pb-3">
+              <span className="text-sm text-neutral-500 font-medium uppercase tracking-wide">Vehicle</span>
+              <span className="font-bold text-neutral-800 md:text-right">
+                {(() => {
+                  const vehicle = typeof formData.selectedVehicle === 'object' 
+                    ? formData.selectedVehicle
+                    : hotelData.fleet.find(v => v.id === formData.selectedVehicle);
+                  
+                  const name = vehicle?.name || vehicle?.brand || vehicle?.typename || 'Selected Vehicle';
+                  const capacity = vehicle?.seats_count || vehicle?.capacity;
+                  
+                  return capacity ? `${name} • ${capacity} Passengers` : name;
+                })()}
               </span>
             </div>
           )}
-          <div className="flex justify-between py-3 border-b border-neutral-200">
-            <span className="text-neutral-600">Passenger</span>
-            <span className="font-semibold">{formData.passengerName}</span>
+
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-1 md:gap-4">
+            <span className="text-sm text-neutral-500 font-medium uppercase tracking-wide">Passenger</span>
+            <span className="font-bold text-neutral-800">{formData.passengerName}</span>
           </div>
-          <div className="flex justify-between items-center py-6 pt-8">
-            <span className="text-2xl font-bold" style={{ color: hotelData.theme.primaryColor }}>Total Amount</span>
+        </div>
+
+        {/* Total Price Section - Premium Dark Footer */}
+        <div className="p-6 bg-neutral-900 mt-2 text-white">
+          <div className="flex justify-between items-end">
+            <div className="flex flex-col gap-1">
+              <span className="text-neutral-400 text-xs uppercase tracking-widest font-bold">Total Payment</span>
+              <p className="text-xs text-neutral-500">Excludes toll fees and parking</p>
+            </div>
             <div className="text-right">
-              <p className="text-4xl font-black" style={{ color: hotelData.theme.accentColor }}>
-                Rp {totalPrice.toLocaleString("id-ID")}
-              </p>
-              <p className="text-xs text-neutral-500 mt-1">Excludes toll fees and parking</p>
+               <div className="flex items-baseline justify-end gap-1.5" style={{ color: hotelData.theme.accentColor }}>
+                 <span className="text-lg font-medium opacity-80">Rp</span>
+                 <span className="text-3xl md:text-4xl font-black tracking-tight">
+                   {totalPrice.toLocaleString("id-ID")}
+                 </span>
+               </div>
             </div>
           </div>
         </div>

@@ -17,6 +17,7 @@ import Step3Payment from "./booking/Step4Payment";
 export default function BookingForm({ hotelData, bookingType = "reservation" }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Separated submission state
   const [paymentOptions, setPaymentOptions] = useState([]);
   const [formData, setFormData] = useState({
     // Booking Type
@@ -94,11 +95,6 @@ export default function BookingForm({ hotelData, bookingType = "reservation" }) 
     }
   };
 
-  // [REMOVED] handleStep2Submit - No longer needed
-  // Both rental and reservation flows now use Step1JourneyBuilder
-  // Order is created via useJourneySubmission (reservation) or useRentalSubmission (rental)
-  // Both flows already have orderId by the time they reach Step 2 (Passenger Details)
-
   // Prepare for Step 4 (Checkout Overview)
   const initializeCheckout = async () => {
     if (!formData.orderId) return;
@@ -110,9 +106,6 @@ export default function BookingForm({ hotelData, bookingType = "reservation" }) 
       // Get Payment Options
       await loadPaymentOptions();
       
-      // NOTE: We don't call /api/checkout/v3/overview anymore
-      // It's unreliable (pulls from DB, not session)
-      // grandTotal is already set from /api/car/select response
       console.log('[Step 4] Using grandTotal from car selection:', formData.grandTotal);
       
     } catch (error) {
@@ -137,7 +130,7 @@ export default function BookingForm({ hotelData, bookingType = "reservation" }) 
 
     try {
       setPaymentState({ ...paymentState, status: 'processing' });
-      setLoading(true);
+      setIsSubmitting(true); // User Interaction Loading
       
       const orderId = formData.orderId;
       if (!orderId) throw new Error('Missing Order ID. Please go back and try again.');
@@ -155,8 +148,6 @@ export default function BookingForm({ hotelData, bookingType = "reservation" }) 
       if (paymentResponse.code !== 200) {
         throw new Error(paymentResponse.message || 'Payment creation failed');
       }
-      
-      // ... (Existing payment detail handling remains same below) ...
       
       console.log('[Payment] ✅ Checkout submitted successfully');
       // Step 5: Fetch payment details to get VA/QRIS/redirect info
@@ -226,7 +217,6 @@ export default function BookingForm({ hotelData, bookingType = "reservation" }) 
         }, 1500);
       
       } else if (detail.paymentmethod && (detail.paymentmethod.bank || detail.paymentmethod.account_number)) {
-        // Handle case where payment method is detected but specific field (qr/va) might be pending
         const isQris = detail.paymentmethod.bank?.toLowerCase().includes('qris') || 
                        detail.paymentmethod.account_number?.toLowerCase().includes('qris');
         
@@ -235,7 +225,7 @@ export default function BookingForm({ hotelData, bookingType = "reservation" }) 
           type: isQris ? 'qris' : 'va',
           data: {
             type: isQris ? 'qris' : 'va',
-            qr_code_url: detail.qrcode_string || null, // Might be null initially
+            qr_code_url: detail.qrcode_string || null, 
             va_number: detail.virtual_account || null,
             amount: detail.grand_total,
             expires_at: detail.expired_at,
@@ -261,6 +251,7 @@ export default function BookingForm({ hotelData, bookingType = "reservation" }) 
       });
     } finally {
        setLoading(false);
+       setIsSubmitting(false); // Reset submission state
     }
   };
 
@@ -604,8 +595,8 @@ export default function BookingForm({ hotelData, bookingType = "reservation" }) 
           />
         )}
 
-        {/* Navigation - HIDE if booking is successful or in payment flow */}
-        {!formData.bookingSuccess && paymentState.status === 'idle' && (
+        {/* Navigation - HIDE if booking is successful or in payment flow (except processing) */}
+        {!formData.bookingSuccess && ['idle', 'processing'].includes(paymentState.status) && (
           <div className="mt-8 pt-8 border-t border-neutral-200">
              {formError && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 animate-shake">
@@ -614,25 +605,40 @@ export default function BookingForm({ hotelData, bookingType = "reservation" }) 
               </div>
             )}
             
-            <div className="flex items-center justify-between gap-4">
+            {/* Luxury Navigation Bar */}
+            <div className="flex items-center gap-3 pt-6 mt-6 border-t border-neutral-100">
               {currentStep > 1 && (
-                <button onClick={prevStep} disabled={loading} className="px-6 py-3 rounded-lg font-semibold text-neutral-700 bg-neutral-100 hover:bg-neutral-200 transition-all duration-300 disabled:opacity-50">
-                  ← Back
+                <button 
+                  onClick={prevStep} 
+                  disabled={loading} 
+                  className="w-12 h-12 flex items-center justify-center rounded-full bg-neutral-100 text-neutral-600 hover:bg-neutral-200 transition-all duration-300 disabled:opacity-50 flex-shrink-0"
+                  aria-label="Back"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                  </svg>
                 </button>
               )}
-              <div className="flex-1"></div>
+              
               <button 
                 onClick={currentStep === totalSteps ? handleCheckoutSubmission : nextStep}
                 disabled={
-                  loading || 
+                  loading || isSubmitting || // Check both
                   (currentStep === 1 && !isStep1Complete()) ||
                   (currentStep === 2 && !isStep3Complete()) ||
                   (currentStep === 3 && !isStep4Complete())
                 }
-                className="px-8 py-3 rounded-lg font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100" 
+                className="flex-1 h-12 flex items-center justify-center rounded-full font-bold text-white shadow-lg shadow-blue-900/10 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 text-sm tracking-wide uppercase" 
                 style={{ backgroundColor: hotelData.theme.accentColor, color: hotelData.theme.primaryColor }}
               >
-                {loading ? "Processing..." : (currentStep === totalSteps ? "Complete Booking" : "Continue →")}
+                {(loading || isSubmitting) ? ( // Show loading UI for both
+                  <span className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Processing
+                  </span>
+                ) : (
+                  currentStep === totalSteps ? "Complete Booking" : "Continue"
+                )}
               </button>
             </div>
           </div>
