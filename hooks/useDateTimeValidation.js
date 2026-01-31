@@ -59,16 +59,12 @@ export function useDateTimeValidation(formData) {
   const isTimeValid = () => {
     if (!formData.pickupTime || !currentDate) return true;
     
-    const minTime = getMinTime();
-    if (!minTime) return true;
+    // Construct selected DateTime
+    const selectedDateTime = new Date(`${currentDate}T${formData.pickupTime}:00`);
     
-    const [selectedHour, selectedMin] = formData.pickupTime.split(':').map(Number);
-    const [minHour, minMin] = minTime.split(':').map(Number);
-    
-    const selectedTotalMin = selectedHour * 60 + selectedMin;
-    const minTotalMin = minHour * 60 + minMin;
-    
-    return selectedTotalMin >= minTotalMin;
+    // Compare with global minDateTime (Now + Buffer)
+    // We add a small grace period (e.g. 1 minute) to avoid second-level mismatches
+    return selectedDateTime >= minDateTime;
   };
 
   /**

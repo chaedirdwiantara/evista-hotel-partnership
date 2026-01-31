@@ -1,6 +1,7 @@
 "use client";
 
 import { isPickupUrgentNight, isReturnUrgentNight } from '@/lib/whatsapp-utils';
+import { Clock } from 'lucide-react';
 
 /**
  * DateTimeSection Component
@@ -202,16 +203,15 @@ export default function DateTimeSection({
         </div>
       )}
 
-      {/* Pickup Time Info */}
+      {/* Pickup Time Info - Compact Version */}
       {(!currentDate || !formData.pickupTime) && !timeIsInvalid && (
-        <div className="p-6 bg-blue-50 border-2 border-blue-200 rounded-xl">
-          <div className="flex items-start gap-4">
-            <div className="text-3xl">⏰</div>
-            <div>
-              <h3 className="font-bold text-blue-800 mb-2">Pickup Time Constraint</h3>
-              <p className="text-blue-700 text-sm">Pickup time must be at least 1 hour from now.</p>
-            </div>
-          </div>
+        <div className="flex items-center gap-2 p-3 bg-blue-50/50 border border-blue-100 rounded-lg">
+          <Clock className="w-4 h-4 text-blue-600 flex-shrink-0" />
+          <p className="text-xs text-blue-600 leading-tight font-medium">
+            {isRental 
+              ? "Rental service requires booking at least 6 hours in advance."
+              : "Pickup time must be at least 1 hour from now."}
+          </p>
         </div>
       )}
 
