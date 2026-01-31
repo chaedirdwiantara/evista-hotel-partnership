@@ -31,7 +31,7 @@ export default function DateTimeSection({
   };
 
   return (
-    <div className="space-y-6 animate-slideDown bg-gradient-to-br from-blue-50 to-white p-6 rounded-2xl border-2 border-blue-200 relative overflow-hidden">
+    <div className="space-y-6 animate-slideDown bg-gradient-to-br from-blue-50 to-white p-4 md:p-6 rounded-2xl border-2 border-blue-200 relative overflow-hidden">
       {/* Loading Overlay */}
       {isSubmitting && (
         <div className="absolute inset-0 bg-white/80 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center animate-fadeIn">
@@ -58,7 +58,7 @@ export default function DateTimeSection({
             min={minDate} 
             value={currentDate || ''} 
             onChange={(e) => updateFormData(dateField, e.target.value)} 
-            className="w-full px-6 py-4 rounded-xl border-2 border-neutral-200 focus:border-amber-500 focus:outline-none transition-all text-lg" 
+            className="w-full px-4 py-3 md:px-6 md:py-4 rounded-xl border-2 border-neutral-200 focus:border-amber-500 focus:outline-none transition-all text-base md:text-lg" 
           />
         </div>
         <div>
@@ -68,7 +68,7 @@ export default function DateTimeSection({
             min={minTime}
             value={formData.pickupTime || ''} 
             onChange={handleTimeChange} 
-            className={`w-full px-6 py-4 rounded-xl border-2 focus:outline-none transition-all text-lg ${
+            className={`w-full px-4 py-3 md:px-6 md:py-4 rounded-xl border-2 focus:outline-none transition-all text-base md:text-lg ${
               timeIsInvalid 
                 ? 'border-red-500 focus:border-red-600 bg-red-50' 
                 : 'border-neutral-200 focus:border-amber-500'
@@ -136,11 +136,11 @@ export default function DateTimeSection({
         </div>
       )}
 
-      {/* Return Date & Time (Round Trip Only) */}
-      {formData.isRoundTrip && (
+      {/* Return Date & Time (Round Trip Only - Reservation Mode) */}
+      {formData.isRoundTrip && !isRental && (
         <div key="return-journey" className="animate-slideDown">
-          <div className="p-6 bg-white rounded-2xl border-2 border-neutral-200">
-            <div className="flex items-center gap-3 mb-6">
+          <div className="p-4 md:p-6 bg-white rounded-2xl border-2 border-neutral-200">
+            <div className="flex items-center gap-3 mb-4 md:mb-6">
               <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg" style={{ backgroundColor: hotelData.theme.accentColor }}>
                 ↩
               </div>
@@ -155,7 +155,7 @@ export default function DateTimeSection({
                   min={formData.pickupDate}
                   value={formData.returnDate || ''} 
                   onChange={(e) => updateFormData("returnDate", e.target.value)} 
-                  className={`w-full px-6 py-4 rounded-xl border-2 focus:outline-none transition-all text-lg ${
+                  className={`w-full px-4 py-3 md:px-6 md:py-4 rounded-xl border-2 focus:outline-none transition-all text-base md:text-lg ${
                     formData.returnDate && formData.pickupDate && new Date(formData.returnDate) < new Date(formData.pickupDate)
                       ? 'border-red-500 bg-red-50'
                       : 'border-neutral-200 focus:border-amber-500'
@@ -174,7 +174,7 @@ export default function DateTimeSection({
                   type="time" 
                   value={formData.returnTime || ''} 
                   onChange={(e) => updateFormData("returnTime", e.target.value)} 
-                  className={`w-full px-6 py-4 rounded-xl border-2 focus:outline-none transition-all text-lg ${
+                  className={`w-full px-4 py-3 md:px-6 md:py-4 rounded-xl border-2 focus:outline-none transition-all text-base md:text-lg ${
                     returnDateTimeIsInvalid
                       ? 'border-red-500 bg-red-50'
                       : 'border-neutral-200 focus:border-amber-500'

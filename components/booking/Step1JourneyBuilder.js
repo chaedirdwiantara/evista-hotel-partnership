@@ -70,19 +70,25 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
 
     // Cleanup Logic on Mode Switch
     if (bookingType === 'rental') {
-      // Switching TO Rental -> Clear Reservation Data + Shared Time
+      // Switching TO Rental -> Clear Reservation Data + All DateTime
       updateFormData("selectedRoute", null);
       updateFormData("selectedVehicleClass", null);
+      updateFormData("pickupDate", "");
       updateFormData("pickupTime", "");
+      updateFormData("returnDate", "");
+      updateFormData("returnTime", "");
       updateFormData("orderId", null);
       updateFormData("selectedVehicle", null);
       updateFormData("manualDestination", null);
       vehicleSelection.clearVehicles();
     } else {
-      // Switching TO Reservation -> Clear Rental Data + Shared Time
+      // Switching TO Reservation -> Clear Rental Data + All DateTime
       updateFormData("rentalDate", "");
       updateFormData("rentalDuration", ""); 
+      updateFormData("pickupDate", "");
       updateFormData("pickupTime", "");
+      updateFormData("returnDate", "");
+      updateFormData("returnTime", "");
       updateFormData("orderId", null);
       updateFormData("selectedVehicle", null);
     }
