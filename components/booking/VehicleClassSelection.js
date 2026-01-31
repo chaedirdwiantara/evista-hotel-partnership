@@ -1,19 +1,5 @@
-"use client";
+import VehicleCard from './VehicleCard';
 
-/**
- * VehicleClassSelection Component
- * 
- * Unified vehicle class selection for both fixed and manual routes.
- * Uses car list API for both route types, with pricing override for fixed routes.
- * 
- * @param {Object} props
- * @param {Object} props.formData - Current form state
- * @param {Object} props.hotelData - Hotel configuration
- * @param {'fixed'|'manual'} props.routeSelectionType - Type of route selection
- * @param {Array} props.availableCars - Available cars from API
- * @param {boolean} props.isLoadingCars - Loading state for cars
- * @param {Function} props.onCarSelect - Car selection handler for both route types
- */
 export default function VehicleClassSelection({ 
   formData, 
   hotelData, 
@@ -59,48 +45,25 @@ export default function VehicleClassSelection({
               }
             }
             
+            const isSelected = formData.selectedVehicleClass === car.id;
+            const imageUrl = car.media?.url || car.image;
+            const priceLabel = car.distance ? `${car.distance.toFixed(1)} km` : null;
+
             return (
-              <button
+              <VehicleCard
                 key={car.id}
-                type="button"
-                onClick={() => onCarSelect(car)}
-                className={`p-5 rounded-xl text-left transition-all duration-300 border-2 ${
-                  formData.selectedVehicleClass === car.id
-                    ? 'shadow-lg scale-[1.02] bg-gradient-to-br from-amber-50 to-white'
-                    : 'border-neutral-200 hover:border-neutral-300 bg-white'
-                }`}
-                style={{ borderColor: formData.selectedVehicleClass === car.id ? hotelData.theme.accentColor : undefined }}
-              >
-                <div className="flex items-start gap-4">
-                  {car.media?.url && (
-                    <img 
-                      src={car.media.url} 
-                      alt={car.typename} 
-                      className="w-16 h-16 object-contain"
-                    />
-                  )}
-                  <div className="flex-1">
-                    <h5 className="font-bold text-neutral-900 mb-1">{car.typename}</h5>
-                    <p className="text-xs text-neutral-600 mb-2">{car.brand}</p>
-                    <p className="text-sm font-semibold mb-1" style={{ color: hotelData.theme.accentColor }}>
-                      Rp {displayPrice.toLocaleString('id-ID')}
-                    </p>
-                    {car.distance && (
-                      <p className="text-xs text-neutral-500">
-                        {car.distance.toFixed(1)} km
-                      </p>
-                    )}
-                  </div>
-                  {formData.selectedVehicleClass === car.id && (
-                    <div 
-                      className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0"
-                      style={{ backgroundColor: hotelData.theme.accentColor }}
-                    >
-                      ✓
-                    </div>
-                  )}
-                </div>
-              </button>
+                image={imageUrl}
+                name={car.typename}
+                category={car.brand}
+                price={displayPrice}
+                passengers={car.seats_count || car.capacity || 4}
+                features={[]}
+                isSelected={isSelected}
+                onSelect={() => onCarSelect(car)}
+                accentColor={hotelData.theme.accentColor}
+                primaryColor={hotelData.theme.primaryColor}
+                priceLabel={priceLabel}
+              />
             );
           })}
         </div>

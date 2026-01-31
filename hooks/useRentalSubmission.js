@@ -109,11 +109,15 @@ export function useRentalSubmission(formData, hotelData, updateFormData) {
 
       // 3. Submit Trip
       const durationHours = getDurationHours(formData.rentalDuration);
+      const returnAt = calculateReturnDateTime(formData.rentalDate, formData.pickupTime, formData.rentalDuration);
       
       const tripData = {
         order_type: "rental",
         pickup_at: `${formData.rentalDate} ${formData.pickupTime}:00`,
+        return_at: returnAt,
         rental_duration_h: durationHours,
+        is_with_driver: formData.withDriver ? 1 : 0,
+        is_same_return_location: formData.returnLocation === "classic_hotel" ? 1 : 0,
         hotel_slug: hotelData.slug
       };
 

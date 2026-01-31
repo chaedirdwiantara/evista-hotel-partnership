@@ -144,7 +144,7 @@ export default function Step4Payment({ formData, updateFormData, calculatePrice,
         <div className="space-y-4">
           <div className="flex justify-between py-3 border-b border-neutral-200">
             <span className="text-neutral-600">Service</span>
-            <span className="font-semibold">{formData.serviceType === "fixPrice" ? "Airport Transfer" : "Rental"}</span>
+            <span className="font-semibold">{formData.serviceType === "fixPrice" ? "Reservation" : "Rental"}</span>
           </div>
           {formData.selectedRoute && (
             <div className="flex justify-between py-3 border-b border-neutral-200">

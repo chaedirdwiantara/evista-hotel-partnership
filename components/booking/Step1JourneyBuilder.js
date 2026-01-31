@@ -83,6 +83,10 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
       updateFormData("orderId", null);
       updateFormData("selectedVehicle", null);
       updateFormData("manualDestination", null);
+      
+      // Set Default Duration to 6 Hours
+      updateFormData("rentalDuration", "6_hours");
+      
       vehicleSelection.clearVehicles();
       rentalSubmission.clearVehicles();
     } else {
@@ -406,7 +410,7 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
       )}
 
       {/* TRIP TYPE SELECTOR - Positioned before DateTime for better flow */}
-      {showDateTime && (
+      {showDateTime && formData.bookingType !== 'rental' && (
         <TripTypeSelector
           isRoundTrip={formData.isRoundTrip}
           onTripTypeChange={handleTripTypeChange}

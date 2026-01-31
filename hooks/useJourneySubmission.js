@@ -58,6 +58,9 @@ export function useJourneySubmission(formData, hotelData, validation) {
     // For Rental, we don't need destination/route selected initially
     const isRental = formData.bookingType === 'rental';
     
+    // DISABLE for rental - useRentalSubmission handles it now
+    if (isRental) return false;
+    
     if (!isRental) {
       const hasDestination = formData.selectedRoute || formData.manualDestination;
       if (!hasDestination) return false;
@@ -66,7 +69,8 @@ export function useJourneySubmission(formData, hotelData, validation) {
       if (!formData.routeId) return false;
     }
     
-    const dateField = isRental ? 'rentalDate' : 'pickupDate';
+    // NOTE: Rental logic removed from here as we disabled it above
+    const dateField = 'pickupDate';
     const currentDate = formData[dateField];
     
     const hasDateTime = currentDate && formData.pickupTime;
@@ -92,18 +96,6 @@ export function useJourneySubmission(formData, hotelData, validation) {
          return false;
     }
     
-    if (isRental) {
-      const hasRentalFields = formData.withDriver !== null && formData.rentalDuration && formData.returnLocation;
-      if (!hasRentalFields) {
-          console.log('[Validation] Missing rental fields:', { 
-              driver: formData.withDriver, 
-              duration: formData.rentalDuration, 
-              loc: formData.returnLocation 
-          });
-          return false;
-      }
-    }
-    
     if (formData.orderId) {
          console.log('[Validation] Order ID already exists:', formData.orderId);
          return false;
@@ -121,51 +113,38 @@ export function useJourneySubmission(formData, hotelData, validation) {
       setIsSubmitting(true);
       setError(null);
       
-      const orderType = formData.bookingType === 'rental' ? 'rental' : 'later';
+      // Only 'later' type handled here - rental handled by useRentalSubmission
+      const orderType = 'later';
       
       let tripData = {};
 
-      if (orderType === 'rental') {
-         // Specific Rental Payload
-         const returnAt = calculateReturnDateTime(formData.rentalDate, formData.pickupTime, formData.rentalDuration);
-         
-         tripData = {
-          order_type: "rental",
-          pickup_at: `${formData.rentalDate} ${formData.pickupTime}:00`,
-          return_at: returnAt,
-          is_with_driver: formData.withDriver ? 1 : 0,
-          is_same_return_location: formData.returnLocation === "classic_hotel" ? 1 : 0,
-          hotel_slug: hotelData?.slug
-         };
-      } else {
-        // Standard Trip Payload
-        const currentDate = formData.pickupDate;
-        tripData = {
+      // Standard Trip Payload
+      const currentDate = formData.pickupDate;
+      tripData = {
           order_type: orderType,
           pickup_at: `${currentDate} ${formData.pickupTime}:00`,
           return_at: formData.isRoundTrip && formData.returnDate && formData.returnTime ? `${formData.returnDate} ${formData.returnTime}:00` : "",
           hotel_slug: hotelData?.slug,
-        };
+      };
 
-        // Flow 1: Fixed Route
-        if (formData.selectedRoute) {
-          tripData.route_id = formData.selectedRoute;
-          
-          // NOTE: selectPickupLocation and selectDestination are already called
-          // in handleFixedRouteSelect when user selects the route.
-          // We don't need to call them again here.
-        }
-        // Flow 2: Manual Destination
-        else if (formData.manualDestination) {
-           // Manual logic (route_id excluded)
-        }
-        else {
-           tripData.route_id = formData.isRoundTrip ? 1 : 0;
-        }
+      // Flow 1: Fixed Route
+      if (formData.selectedRoute) {
+        tripData.route_id = formData.selectedRoute;
+        
+        // NOTE: selectPickupLocation and selectDestination are already called
+        // in handleFixedRouteSelect when user selects the route.
+        // We don't need to call them again here.
+      }
+      // Flow 2: Manual Destination
+      else if (formData.manualDestination) {
+         // Manual logic (route_id excluded)
+      }
+      else {
+         tripData.route_id = formData.isRoundTrip ? 1 : 0;
+      }
 
-        if (formData.isRoundTrip && formData.returnDate && formData.returnTime) {
-          tripData.return_at = `${formData.returnDate} ${formData.returnTime}:00`;
-        }
+      if (formData.isRoundTrip && formData.returnDate && formData.returnTime) {
+        tripData.return_at = `${formData.returnDate} ${formData.returnTime}:00`;
       }
 
       // Submit trip

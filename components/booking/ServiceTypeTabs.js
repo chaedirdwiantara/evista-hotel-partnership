@@ -10,7 +10,7 @@ import { Car, CalendarCheck } from 'lucide-react';
  */
 export default function ServiceTypeTabs({ serviceType, onServiceTypeChange, hotelData }) {
   const tabs = [
-    { id: "fixPrice", label: "Reservation", icon: CalendarCheck, type: "airport" },
+    { id: "fixPrice", label: "Reservation", icon: CalendarCheck, type: "reservation" },
     ...(hotelData.services.rental.enabled ? [{ id: "rental", label: "Car Rental", icon: Car, type: "rental" }] : [])
   ];
 

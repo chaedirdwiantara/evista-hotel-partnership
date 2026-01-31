@@ -14,15 +14,15 @@ import Step3Payment from "./booking/Step4Payment";
  * Multi-Step Booking Form Component
  * Luxury booking wizard with night reservation logic and WhatsApp integration
  */
-export default function BookingForm({ hotelData, bookingType = "airport" }) {
+export default function BookingForm({ hotelData, bookingType = "reservation" }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [paymentOptions, setPaymentOptions] = useState([]);
   const [formData, setFormData] = useState({
     // Booking Type
-    bookingType: bookingType, // "airport" | "rental"
+    bookingType: bookingType === 'airport' ? 'reservation' : bookingType, // Normalize "airport" -> "reservation"
     
-    // Step 1 - Airport Transfer
+    // Step 1 - Reservation (formerly Airport Transfer)
     serviceType: "fixPrice",
     selectedRoute: null,
     selectedVehicleClass: null,
