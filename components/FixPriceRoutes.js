@@ -37,20 +37,18 @@ export default function FixPriceRoutes({ routes, accentColor, primaryColor }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-8 max-w-5xl mx-auto">
+        {/* Routes Grid - Horizontal Scroll on Mobile */}
+        <div className="flex md:grid md:grid-cols-2 gap-x-4 gap-y-8 max-w-5xl mx-auto overflow-x-auto overflow-y-hidden md:overflow-visible snap-x snap-mandatory pb-8 md:pb-0 -mx-6 md:mx-auto px-6 md:px-0 scrollbar-hide">
           {routes.map((route, index) => (
             <div
               key={route.id}
-              className="group relative bg-gradient-to-br from-white to-neutral-50 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-neutral-200"
+              className="snap-center shrink-0 w-[80vw] md:w-full max-w-[380px] md:max-w-[380px] group relative bg-gradient-to-br from-white to-neutral-50 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-neutral-200"
               style={{
-                animation: `fadeInUp 0.6s ease-out ${index * 0.2}s backwards`,
-                width: '100%',
-                maxWidth: '380px',
-                minHeight: '680px',
-                margin: '0 auto'
+                // Animation removed for mobile stability. Can be re-added via media query if needed.
+                margin: '0 auto' 
               }}
             >
-              {/* Route Image */}
+              {/* Route Image to Price Section remains unchanged */}
               <div className="relative h-56 bg-gradient-to-br from-neutral-200 to-neutral-300 overflow-hidden">
                 {/* Actual destination image */}
                 <img 
@@ -92,7 +90,7 @@ export default function FixPriceRoutes({ routes, accentColor, primaryColor }) {
               </div>
 
               {/* Route Info */}
-              <div className="p-6 flex flex-col" style={{ flex: 1 }}>
+              <div className="p-6 flex flex-col min-h-[400px]">
                 <h3 
                   className="text-xl font-bold mb-4 group-hover:text-amber-600 transition-colors duration-300"
                   style={{ 
@@ -176,7 +174,7 @@ export default function FixPriceRoutes({ routes, accentColor, primaryColor }) {
                 </div>
 
                 {/* Spacer to push bottom section down */}
-                <div style={{ flex: 1 }}></div>
+                <div className="flex-1"></div>
 
                 {/* Price & CTA - Always at bottom */}
                 <div>

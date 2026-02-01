@@ -79,25 +79,28 @@ export default function AboutPartnership({ hotelData }) {
         </motion.div>
 
         {/* Benefits Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 max-w-6xl mx-auto">
+        {/* Benefits Grid - Horizontal Scroll on Mobile, Grid on Desktop */}
+        <div className="flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10 md:max-w-6xl md:mx-auto overflow-x-auto overflow-y-hidden md:overflow-visible snap-x snap-mandatory pb-8 md:pb-0 -mx-6 md:mx-auto px-6 md:px-0 scrollbar-hide">
           {benefits.map((benefit, index) => (
-            <motion.div
-              key={benefit.title}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ 
-                duration: 0.6, 
-                delay: index * 0.1,
-                type: "spring",
-                stiffness: 80
-              }}
-              viewport={{ once: true }}
-              className="group relative bg-gradient-to-br from-white to-neutral-50 rounded-3xl p-10 border-2 border-neutral-100 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+            <div 
+              key={benefit.title} 
+              className="snap-center shrink-0 w-[80vw] md:w-auto md:first:ml-0 md:last:mr-0"
             >
+              <motion.div
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                transition={{ 
+                  duration: 0.6, 
+                  delay: index * 0.1,
+                }}
+                viewport={{ once: true }}
+                className="h-full group relative bg-gradient-to-br from-white to-neutral-50 rounded-3xl p-8 md:p-10 border-2 border-neutral-100 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+              >
+
               <div className="relative">
                 {/* Icon */}
-                <div className="mb-8 flex justify-center">
-                  <div className="relative w-24 h-24 transform group-hover:scale-110 transition-transform duration-500">
+                <div className="mb-6 md:mb-8 flex justify-center">
+                  <div className="relative w-20 h-20 md:w-24 md:h-24 transform group-hover:scale-110 transition-transform duration-500">
                     <Image 
                       src={benefit.icon} 
                       alt={benefit.title}
@@ -112,7 +115,7 @@ export default function AboutPartnership({ hotelData }) {
 
                 {/* Title */}
                 <h3 
-                  className="text-2xl font-extrabold mb-3 text-center"
+                  className="text-xl md:text-2xl font-extrabold mb-2 md:mb-3 text-center"
                   style={{ 
                     color: theme.primary || "#1a1a1a",
                     letterSpacing: "-0.01em"
@@ -122,11 +125,12 @@ export default function AboutPartnership({ hotelData }) {
                 </h3>
 
                 {/* Subtitle */}
-                <p className="text-base text-neutral-600 leading-relaxed text-center font-medium">
+                <p className="text-sm md:text-base text-neutral-600 leading-relaxed text-center font-medium">
                   {benefit.subtitle}
                 </p>
               </div>
             </motion.div>
+            </div>
           ))}
         </div>
 

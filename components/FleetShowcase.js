@@ -31,15 +31,16 @@ export default function FleetShowcase({ hotelData, onBook }) {
         </p>
       </motion.div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 overflow-x-auto overflow-y-hidden md:overflow-visible snap-x snap-mandatory pb-8 md:pb-0 px-6 md:px-0 -mx-6 md:mx-auto scrollbar-hide">
         {fleet.map((vehicle, index) => (
-          <VehicleCard
-            key={vehicle.id}
-            vehicle={vehicle}
-            theme={theme}
-            index={index}
-            onBook={onBook}
-          />
+          <div key={vehicle.id} className="snap-center shrink-0 w-[80vw] md:w-auto md:first:ml-0 md:last:mr-0">
+            <VehicleCard
+              vehicle={vehicle}
+              theme={theme}
+              index={index}
+              onBook={onBook}
+            />
+          </div>
         ))}
       </div>
 
@@ -54,12 +55,10 @@ export default function FleetShowcase({ hotelData, onBook }) {
 function VehicleCard({ vehicle, theme, index, onBook }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
       transition={{ 
-        type: "spring",
-        stiffness: 70,
-        damping: 20,
+        duration: 0.5,
         delay: index * 0.1 
       }}
       viewport={{ once: true }}
