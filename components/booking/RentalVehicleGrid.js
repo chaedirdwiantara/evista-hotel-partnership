@@ -18,13 +18,8 @@ export default function RentalVehicleGrid({
   };
 
   // Filter out Economy vehicles (ID 1 or class "economy")
-  const filteredVehicles = vehicles?.filter(vehicle => {
-    const isExcludedId = String(vehicle.id) === '1';
-    const isEconomyClass = vehicle.vehicleClass?.toLowerCase() === 'economy' || 
-                           vehicle.category?.toLowerCase() === 'economy' ||
-                           vehicle.typename?.toLowerCase() === 'economy';
-    return !isExcludedId && !isEconomyClass;
-  }) || [];
+  // Show ALl Vehicles (User Requirement: "memunculkan semua list car tanpa terkecuali")
+  const filteredVehicles = vehicles || [];
 
   // No vehicles to display
   if (filteredVehicles.length === 0) {

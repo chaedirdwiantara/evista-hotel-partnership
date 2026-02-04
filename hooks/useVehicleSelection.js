@@ -15,19 +15,15 @@ export function useVehicleSelection() {
   const [isLoadingCars, setIsLoadingCars] = useState(false);
 
   /**
-   * Filter cars based on allowed IDs
-   * Only Premium (2) and Economy+ (9) are allowed for 'later' (Airport Transfer)
-   * For 'rental', show all available cars
+   * Return all cars without filtering (User Requirement: Show all cars)
+   * Previously filtered for specific services, now allows all.
    * @param {Array} rawCars - Raw car list from API
    * @param {string} orderType - Order type ('later' or 'rental')
    * @returns {Array} Filtered car list
    */
   const filterAllowedCars = (rawCars, orderType = 'later') => {
-    if (orderType === 'rental') {
-      return rawCars; // Show all cars for rental
-    }
-    const allowedCarIds = [2, 9]; // Premium (2), Economy+ (9)
-    return rawCars.filter(car => allowedCarIds.includes(car.id));
+    // Return all cars without filtering by ID
+    return rawCars;
   };
 
   /**

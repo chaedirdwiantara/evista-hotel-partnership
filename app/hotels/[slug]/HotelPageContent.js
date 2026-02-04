@@ -27,6 +27,44 @@ export default function HotelPageContent({ hotelData: initialHotelData }) {
         const token = await EvistaAPI.auth.getUserToken();
         if (!token) return;
 
+        // DEBUG: Fetch Pickup Points
+        try {
+          const hotelLat = initialHotelData.routes[0]?.pickup?.lat;
+          const hotelLng = initialHotelData.routes[0]?.pickup?.lng;
+          
+          if (hotelLat && hotelLng) {
+            const pickupPointsResponse = await EvistaAPI.trips.getPickupPoints(hotelLat, hotelLng);
+            console.log("DEBUG RESPONSE [api/trip/pickup-point/list]:", pickupPointsResponse);
+
+            // Find ID for Classic Hotel
+            if (pickupPointsResponse?.data && Array.isArray(pickupPointsResponse.data)) {
+              const targetHotel = pickupPointsResponse.data.find(p => 
+                p.name?.toLowerCase().includes("classic hotel") || 
+                p.name?.toLowerCase().includes("hotel classic")
+              );
+
+              if (targetHotel) {
+                console.log("Found Target Hotel ID:", targetHotel.id);
+                try {
+                  // Call 1: Trip Type 'later'
+                  const setResponseLater = await EvistaAPI.trips.setPickupPoint(targetHotel.id, 'later');
+                  console.log("DEBUG RESPONSE [api/trip/pickup-point/set] (later):", setResponseLater);
+
+                  // Call 2: Trip Type 'rental'
+                  const setResponseRental = await EvistaAPI.trips.setPickupPoint(targetHotel.id, 'rental');
+                  console.log("DEBUG RESPONSE [api/trip/pickup-point/set] (rental):", setResponseRental);
+                } catch (setError) {
+                  console.error("Failed to set pickup point:", setError);
+                }
+              } else {
+                console.warn("Target hotel (Classic Hotel) not found in pickup points list");
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch pickup points:", err);
+        }
+
         // Fetch Hotel Details (via local proxy to avoid CORS)
         const hotelUrl = `/api/hotel/classic-hotel`;
         const hotelRes = await fetch(hotelUrl, { 
