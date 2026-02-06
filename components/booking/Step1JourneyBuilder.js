@@ -45,7 +45,7 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
   const dateTimeValidation = useDateTimeValidation(formData);
   const journeySubmission = useJourneySubmission(formData, hotelData, dateTimeValidation);
   const vehicleSelection = useVehicleSelection();
-  const rentalSubmission = useRentalSubmission(formData, hotelData, updateFormData);
+  const rentalSubmission = useRentalSubmission(formData, hotelData, updateFormData, dateTimeValidation);
 
   // ==================
   // COMPUTED VALUES
@@ -324,7 +324,9 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
     formData.returnLocation,
     formData.rentalDate,
     formData.pickupTime,
-    formData.orderId
+    formData.orderId,
+    dateTimeValidation.timeIsInvalid,
+    dateTimeValidation.nightServiceRestricted
   ]);
 
   /**
@@ -434,7 +436,7 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
           updateFormData={updateFormData}
           hotelData={hotelData}
           validation={dateTimeValidation}
-          isSubmitting={journeySubmission.isSubmitting}
+          isSubmitting={journeySubmission.isSubmitting || vehicleSelection.isLoadingCars || rentalSubmission.isSubmitting}
           journeyError={journeySubmission.error}
         />
       )}
@@ -442,12 +444,13 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
       {/* RENTAL VEHICLE SELECTION */}
       {formData.serviceType === "rental" && formData.orderId && !dateTimeValidation.nightServiceRestricted && (
         <RentalVehicleGrid
-          vehicles={rentalSubmission.availableCars.length > 0 ? rentalSubmission.availableCars : hotelData.fleet}
+          vehicles={rentalSubmission.availableCars}
           selectedVehicle={formData.selectedVehicle}
           onSelectVehicle={handleRentalVehicleSelect}
           hotelData={hotelData}
           formData={formData}
           isSubmitting={rentalSubmission.isSubmitting}
+          isLoading={rentalSubmission.isLoadingCars}
         />
       )}
 

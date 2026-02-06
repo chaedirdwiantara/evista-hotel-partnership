@@ -14,7 +14,7 @@ import { RETURN_LOCATIONS } from '@/components/booking/RentalFields';
  * 
  * Consolidated from Step1RentalSelection.js (lines 242-376)
  */
-export function useRentalSubmission(formData, hotelData, updateFormData) {
+export function useRentalSubmission(formData, hotelData, updateFormData, dateTimeValidation) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableCars, setAvailableCars] = useState([]);
   const [isLoadingCars, setIsLoadingCars] = useState(false);
@@ -52,7 +52,7 @@ export function useRentalSubmission(formData, hotelData, updateFormData) {
     }
   }, [getDurationHours]);
 
-  // Check if all rental fields are filled
+  // Check if all rental fields are filled and valid
   const isReadyToSubmit = useCallback(() => {
     const hasDriver = formData.withDriver !== null && formData.withDriver !== undefined;
     const hasDuration = !!formData.rentalDuration;
@@ -61,8 +61,12 @@ export function useRentalSubmission(formData, hotelData, updateFormData) {
     const hasTime = !!formData.pickupTime;
     const noOrder = !formData.orderId;
     
-    return hasDriver && hasDuration && hasReturnLoc && hasDate && hasTime && noOrder;
-  }, [formData]);
+    // Validation Checks
+    const isDtValid = dateTimeValidation ? !dateTimeValidation.timeIsInvalid : true;
+    const isNightValid = dateTimeValidation ? !dateTimeValidation.nightServiceRestricted : true;
+    
+    return hasDriver && hasDuration && hasReturnLoc && hasDate && hasTime && noOrder && isDtValid && isNightValid;
+  }, [formData, dateTimeValidation]);
 
   // Submit rental trip
   const submitRentalTrip = useCallback(async () => {
