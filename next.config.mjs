@@ -4,7 +4,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'bhisa-dev-v1.evista.id',
+        hostname: 'new-dev.evista.id',
       },
       {
         protocol: 'https',
