@@ -7,7 +7,8 @@ export default function RentalVehicleGrid({
   onSelectVehicle, 
   hotelData,
   formData,
-  isSubmitting 
+  isSubmitting,
+  isLoading 
 }) {
   const rentalDurations = getRentalDurations();
   
@@ -20,6 +21,16 @@ export default function RentalVehicleGrid({
   // Filter out Economy vehicles (ID 1 or class "economy")
   // Show ALl Vehicles (User Requirement: "memunculkan semua list car tanpa terkecuali")
   const filteredVehicles = vehicles || [];
+
+  // Loading State
+  if (isLoading) {
+    return (
+      <div className="text-center py-12 animate-pulse">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 mb-4" style={{ borderColor: hotelData.theme.accentColor }}></div>
+        <p className="text-neutral-500 font-medium">Loading available vehicles...</p>
+      </div>
+    );
+  }
 
   // No vehicles to display
   if (filteredVehicles.length === 0) {

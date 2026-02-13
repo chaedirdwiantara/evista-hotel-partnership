@@ -16,17 +16,17 @@ import { getRentalDurations } from '@/lib/rental-pricing';
  * @param {Object} props.hotelData - Hotel configuration for theme
  */
 export default function RentalFields({ formData, updateFormData, hotelData }) {
-  const [openDuration, setOpenDuration] = useState(false);
+  // Force 12 hours duration on mount
+  useEffect(() => {
+    updateFormData('rentalDuration', '12_hours');
+  }, []);
+
   const [openLocation, setOpenLocation] = useState(false);
-  const durationRef = useRef(null);
   const locationRef = useRef(null);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (durationRef.current && !durationRef.current.contains(event.target)) {
-        setOpenDuration(false);
-      }
       if (locationRef.current && !locationRef.current.contains(event.target)) {
         setOpenLocation(false);
       }
@@ -99,67 +99,28 @@ export default function RentalFields({ formData, updateFormData, hotelData }) {
         </div>
       </div>
 
-      {/* Pickup Location (Fixed to Hotel) */}
-      <div>
-        <label className="block text-sm font-semibold text-neutral-700 mb-3">
-          Pickup Location <span className="text-red-500">*</span>
-        </label>
-        <div className="w-full px-6 py-4 rounded-xl border-2 border-neutral-200 bg-neutral-50 text-neutral-600 text-lg flex items-center gap-3">
-          <MapPin className="w-5 h-5 text-red-500" />
-          <span>{hotelData.name}</span>
-        </div>
-      </div>
-
-      {/* Rental Duration Dropdown */}
-      <div ref={durationRef} className="relative">
-        <label className="block text-sm font-semibold text-neutral-700 mb-3">
-          Rental Duration <span className="text-red-500">*</span>
-        </label>
-        
-        <button
-          type="button"
-          onClick={() => setOpenDuration(!openDuration)}
-          className="w-full px-6 py-4 rounded-xl border-2 border-neutral-200 text-left flex justify-between items-center transition-all text-lg hover:border-neutral-300"
-          style={{ 
-            borderColor: openDuration ? accentColor : undefined,
-            backgroundColor: openDuration ? '#fffef9' : '#ffffff'
-          }}
-        >
-          <span className={formData.rentalDuration ? "text-neutral-900" : "text-neutral-500"}>
-            {getDurationLabel(formData.rentalDuration)}
-          </span>
-          <ChevronDown 
-            className={`w-5 h-5 text-neutral-500 transition-transform ${openDuration ? 'rotate-180' : ''}`}
-            style={{ color: openDuration ? accentColor : undefined }}
-          />
-        </button>
-
-        {openDuration && (
-          <div 
-            className="absolute z-50 w-full mt-2 bg-white border-2 rounded-xl shadow-2xl overflow-hidden"
-            style={{ borderColor: accentColor }}
-          >
-            <div className="max-h-60 overflow-y-auto">
-              {durationOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={`w-full px-6 py-4 text-left transition-all text-lg border-b border-neutral-100 last:border-b-0 ${
-                    formData.rentalDuration === option.value
-                      ? 'bg-gradient-to-r from-amber-50 to-white font-semibold'
-                      : 'hover:bg-neutral-50'
-                  }`}
-                  onClick={() => {
-                    updateFormData('rentalDuration', option.value);
-                    setOpenDuration(false);
-                  }}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
+      {/* Pickup Location & Rental Duration (Compact Grid) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Pickup Location */}
+        <div>
+          <label className="block text-sm font-semibold text-neutral-700 mb-3">
+            Pickup Location <span className="text-red-500">*</span>
+          </label>
+          <div className="w-full px-6 py-4 rounded-xl border-2 border-neutral-200 bg-neutral-50 text-neutral-600 text-lg flex items-center gap-3">
+            <MapPin className="w-5 h-5 text-red-500" />
+            <span className="truncate">{hotelData.name}</span>
           </div>
-        )}
+        </div>
+
+        {/* Rental Duration (Fixed) */}
+        <div>
+          <label className="block text-sm font-semibold text-neutral-700 mb-3">
+            Rental Duration <span className="text-red-500">*</span>
+          </label>
+          <div className="w-full px-6 py-4 rounded-xl border-2 border-neutral-200 bg-neutral-50 text-neutral-600 text-lg flex items-center gap-3">
+            <span className="text-neutral-900 font-medium">1 Hari (12 Jam)</span>
+          </div>
+        </div>
       </div>
 
       {/* Return Location Dropdown */}
