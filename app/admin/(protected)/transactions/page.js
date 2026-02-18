@@ -1,16 +1,8 @@
 'use client';
-import { useState } from 'react';
-import { Search, Filter, Download, ChevronLeft, ChevronRight } from 'lucide-react';
-
-const TRANSACTIONS_DATA = [
-  { id: '#TRX-89012', guest: 'Sarah Jenkins', service: 'Luxury Rental (12 Hours)', date: 'Jan 15, 2026', amount: 2500000, commissionRate: 25, status: 'Completed', statusColor: 'emerald', bookingNumber: 15 },
-  { id: '#TRX-89011', guest: 'Michael Chang', service: 'Airport Transfer (Drop-off)', date: 'Jan 14, 2026', amount: 850000, commissionRate: 25, status: 'On Trip', statusColor: 'blue', bookingNumber: 14 },
-  { id: '#TRX-89010', guest: 'Amanda Low', service: 'Airport Transfer (Pick-up)', date: 'Jan 14, 2026', amount: 450000, commissionRate: 25, status: 'Completed', statusColor: 'emerald', bookingNumber: 13 },
-  { id: '#TRX-89009', guest: 'Robert Fox', service: 'Luxury Rental (24 Hours)', date: 'Jan 12, 2026', amount: 4500000, commissionRate: 25, status: 'Cancelled', statusColor: 'red', bookingNumber: 12 },
-  { id: '#TRX-89008', guest: 'Jenny Wilson', service: 'Airport Transfer (Drop-off)', date: 'Jan 11, 2026', amount: 850000, commissionRate: 25, status: 'Completed', statusColor: 'emerald', bookingNumber: 11 },
-  { id: '#TRX-89007', guest: 'Guy Hawkins', service: 'Luxury Rental (6 Hours)', date: 'Jan 10, 2026', amount: 1500000, commissionRate: 25, status: 'Completed', statusColor: 'emerald', bookingNumber: 10 },
-  { id: '#TRX-89006', guest: 'Courtney Henry', service: 'Airport Transfer (Pick-up)', date: 'Jan 09, 2026', amount: 450000, commissionRate: 20, status: 'Completed', statusColor: 'emerald', bookingNumber: 9 },
-];
+import { useState, useEffect } from 'react';
+import { Search, Filter, Download, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { EvistaAPI } from '@/lib/evista-api';
+// Config loaded from session
 
 // Format currency helper
 const formatCurrency = (amount) => {
@@ -23,6 +15,82 @@ const formatCurrency = (amount) => {
 
 export default function TransactionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    current_page: 1,
+    last_page: 1
+  });
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        setLoading(true);
+        // Try to get hotel slug from local storage (set during login)
+        const hotelSlug = localStorage.getItem('hotel_slug');
+        
+        if (!hotelSlug) {
+            // If no slug found, redirect to login
+            window.location.href = '/admin/login';
+            return;
+        }
+
+        const response = await EvistaAPI.hotel.getTransactions(hotelSlug);
+        
+        if (response.success) {
+          setTransactions(response.data.transactions);
+          setPagination({
+            total: response.data.total_bookings,
+            current_page: response.data.current_page,
+            last_page: response.data.last_page
+          });
+        } else {
+          setError(response.message || "Failed to fetch transactions");
+        }
+      } catch (err) {
+        console.error("Transactions fetch error:", err);
+        setError("An error occurred while fetching data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, []);
+
+  // Filter transactions based on search term
+  const filteredTransactions = transactions.filter(trx => 
+    trx.booking_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    trx.guest_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-10 h-10 text-amber-500 animate-spin mb-4" />
+        <p className="text-slate-500">Loading transactions...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="bg-red-50 text-red-600 px-6 py-4 rounded-xl border border-red-100">
+          <p className="font-medium">Error loading data</p>
+          <p className="text-sm mt-1">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-3 text-xs bg-white border border-red-200 px-3 py-1.5 rounded hover:bg-red-50 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -74,29 +142,26 @@ export default function TransactionsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {TRANSACTIONS_DATA.map((trx) => {
-                const commission = trx.amount * (trx.commissionRate / 100);
-                return (
+              {filteredTransactions.length > 0 ? (
+                filteredTransactions.map((trx) => (
                   <tr key={trx.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-900">{trx.id}</td>
-                    <td className="px-6 py-4 text-slate-600">{trx.guest}</td>
+                    <td className="px-6 py-4 font-medium text-slate-900">#{trx.booking_id}</td>
+                    <td className="px-6 py-4 text-slate-600">{trx.guest_name}</td>
                     <td className="px-6 py-4 text-slate-600">{trx.service}</td>
                     <td className="px-6 py-4 text-slate-600">{trx.date}</td>
                     <td className="px-6 py-4 font-medium text-slate-900">{formatCurrency(trx.amount)}</td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
-                        ${trx.commissionRate === 27 ? 'bg-amber-100 text-amber-800' : 
-                          trx.commissionRate === 25 ? 'bg-gray-100 text-gray-800' : 
-                          'bg-slate-100 text-slate-800'}`}>
-                        {trx.commissionRate}%
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-800">
+                        {trx.commission_rate}%
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-semibold text-emerald-700">{formatCurrency(commission)}</td>
+                    <td className="px-6 py-4 font-semibold text-emerald-700">{formatCurrency(trx.commission)}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        ${trx.statusColor === 'emerald' ? 'bg-emerald-100 text-emerald-800' : 
-                          trx.statusColor === 'blue' ? 'bg-blue-100 text-blue-800' : 
-                          'bg-red-100 text-red-800'}`}>
+                        ${trx.status === 'completed' || trx.status === 'paid' ? 'bg-emerald-100 text-emerald-800' : 
+                          trx.status === 'on_trip' ? 'bg-blue-100 text-blue-800' : 
+                          trx.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                          'bg-amber-100 text-amber-800'}`}>
                         {trx.status}
                       </span>
                     </td>
@@ -104,20 +169,35 @@ export default function TransactionsPage() {
                       <button className="text-amber-600 hover:text-amber-700 font-medium text-xs">View Details</button>
                     </td>
                   </tr>
-                );
-              })}
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="9" className="px-6 py-12 text-center text-slate-500">
+                    No transactions found matching your criteria.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
         {/* Pagination */}
         <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
-          <p className="text-sm text-slate-500">Showing <span className="font-medium text-slate-900">1</span> to <span className="font-medium text-slate-900">7</span> of <span className="font-medium text-slate-900">128</span> results</p>
+          <p className="text-sm text-slate-500">
+            Showing <span className="font-medium text-slate-900">{filteredTransactions.length}</span> results 
+            (Page <span className="font-medium text-slate-900">{pagination.current_page}</span> of <span className="font-medium text-slate-900">{pagination.last_page}</span>)
+          </p>
           <div className="flex gap-2">
-            <button className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 text-slate-600">
+            <button 
+              disabled={pagination.current_page === 1}
+              className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 text-slate-600"
+            >
               <ChevronLeft size={18} />
             </button>
-            <button className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600">
+            <button 
+              disabled={pagination.current_page === pagination.last_page}
+              className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 text-slate-600"
+            >
               <ChevronRight size={18} />
             </button>
           </div>
