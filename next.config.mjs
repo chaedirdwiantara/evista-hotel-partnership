@@ -12,7 +12,23 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'images.unsplash.com', // Common placeholder source
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com', // Google profile images
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com', // Placeholders
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+      {
+        protocol: 'http',
+        hostname: '127.0.0.1',
       }
     ],
   },

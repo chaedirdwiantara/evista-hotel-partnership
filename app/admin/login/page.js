@@ -11,11 +11,31 @@ export default function AdminLogin() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // TODO: Implement actual login logic
-    setTimeout(() => {
-      setLoading(false);
-      router.push('/admin/dashboard');
-    }, 1500);
+    
+    try {
+        const response = await import('@/lib/evista-api').then(mod => mod.EvistaAPI.partner.login(
+            e.target[0].value, // email
+            e.target[1].value  // password
+        ));
+
+        if (response.success && response.data) {
+            // Store partner session data
+            localStorage.setItem('partner_token', response.data.token);
+            localStorage.setItem('hotel_slug', response.data.hotel.slug);
+            localStorage.setItem('hotel_data', JSON.stringify(response.data.hotel));
+            localStorage.setItem('partner_user', JSON.stringify(response.data.user));
+            
+            // Redirect to dashboard
+            router.push('/admin/dashboard');
+        } else {
+            alert(response.message || 'Login failed');
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        alert('An error occurred during login. Please try again.');
+    } finally {
+        setLoading(false);
+    }
   };
 
   return (

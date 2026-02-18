@@ -1,15 +1,80 @@
+'use client';
+import { useState, useEffect } from 'react';
 import StatsCard from '@/components/admin/StatsCard';
 import TierProgress from '@/components/admin/TierProgress';
-import { Calendar, Percent, Wallet, TrendingUp } from 'lucide-react';
+import { Calendar, Percent, Wallet, TrendingUp, Loader2 } from 'lucide-react';
+import { EvistaAPI } from '@/lib/evista-api';
+// Default config for fallback
+// Config loaded from session
 
 export default function AdminDashboard() {
-  // Mock data - replace with real API data
-  const currentBookings = 15; // This month
-  const totalRevenue = 128500000; // Gross revenue from all bookings
-  const currentTierRate = currentBookings >= 20 ? 27 : currentBookings >= 10 ? 25 : 20;
-  const estimatedCommission = totalRevenue * (currentTierRate / 100);
-  const pendingPayout = 45200000; // From last month
-  
+  const [stats, setStats] = useState({
+    currentBookings: 0,
+    totalRevenue: 0,
+    pendingPayout: 0,
+    transactions: [],
+    loading: true,
+    error: null
+  });
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        // Try to get hotel slug from local storage (set during login)
+        const hotelSlug = localStorage.getItem('hotel_slug');
+        
+        if (!hotelSlug) {
+            // If no slug found, redirect to login
+            window.location.href = '/admin/login';
+            return;
+        }
+
+        const response = await EvistaAPI.hotel.getTransactions(hotelSlug);
+        
+        if (response.success && response.data) {
+            const transactions = response.data.transactions || [];
+            const currentBookings = response.data.total_bookings || 0;
+            
+            // Calculate total revenue from transactions (in a real app this might come from API)
+            const totalRevenue = transactions.reduce((sum, trx) => sum + (parseFloat(trx.amount) || 0), 0);
+            
+            // Estimate pending payout (mock calculation for now as API doesn't return it yet)
+            const pendingPayout = totalRevenue * 0.7; // Assuming 70% share
+
+            setStats({
+                currentBookings,
+                totalRevenue,
+                pendingPayout,
+                transactions,
+                loading: false,
+                error: null
+            });
+        }
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+        setStats(prev => ({
+            ...prev,
+            loading: false,
+            error: "Failed to load dashboard data"
+        }));
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  // Calculate commission derived from bookings
+  const currentTierRate = stats.currentBookings >= 20 ? 27 : stats.currentBookings >= 10 ? 25 : 20;
+  const estimatedCommission = stats.totalRevenue * (currentTierRate / 100);
+
+  if (stats.loading) {
+      return (
+          <div className="flex h-64 items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+      );
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -21,40 +86,40 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Total Bookings"
-          value={currentBookings.toString()}
-          subtext="this month"
+          value={stats.currentBookings.toString()}
+          subtext="active transactions"
           trend="up"
-          trendValue="+5"
+        //   trendValue="+5"
           icon={Calendar}
         />
         <StatsCard
           title="Commission Rate"
           value={`${currentTierRate}%`}
-          subtext={currentBookings >= 10 ? 'Silver Tier Active' : 'Base Rate'}
-          trend={currentBookings >= 10 ? "up" : null}
-          trendValue={currentBookings >= 10 ? '+5%' : null}
+          subtext={stats.currentBookings >= 10 ? 'Silver Tier Active' : 'Base Rate'}
+          trend={stats.currentBookings >= 10 ? "up" : null}
+          trendValue={stats.currentBookings >= 10 ? '+5%' : null}
           icon={Percent}
         />
         <StatsCard
           title="Est. Commission"
           value={`Rp ${(estimatedCommission / 1000000).toFixed(1)}M`}
-          subtext="this month (accumulated)"
+          subtext="accumulated revenue"
           trend="up"
-          trendValue="+8.2%"
+        //   trendValue="+8.2%"
           icon={TrendingUp}
         />
         <StatsCard
-          title="Pending Payout"
-          value={`Rp ${(pendingPayout / 1000000).toFixed(1)}M`}
-          subtext="due in 7 working days"
+          title="Est. Payout"
+          value={`Rp ${(stats.pendingPayout / 1000000).toFixed(1)}M`}
+          subtext="estimated earnings"
           icon={Wallet}
         />
       </div>
 
       {/* Tier Progress */}
-      <TierProgress currentBookings={currentBookings} />
+      <TierProgress currentBookings={stats.currentBookings} />
 
-      {/* Recent Transactions Placeholder */}
+      {/* Recent Transactions */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center">
           <h3 className="font-bold text-slate-800">Recent Transactions</h3>
@@ -62,72 +127,46 @@ export default function AdminDashboard() {
         </div>
         <div className="p-6">
             <div className="relative overflow-x-auto">
-                <table className="w-full text-sm text-left rtl:text-right text-gray-500">
-                    <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                        <tr>
-                            <th scope="col" className="px-6 py-3">
-                                Booking ID
-                            </th>
-                            <th scope="col" className="px-6 py-3">
-                                Guest Name
-                            </th>
-                            <th scope="col" className="px-6 py-3">
-                                Service
-                            </th>
-                            <th scope="col" className="px-6 py-3">
-                                Date
-                            </th>
-                            <th scope="col" className="px-6 py-3">
-                                Amount
-                            </th>
-                            <th scope="col" className="px-6 py-3">
-                                Status
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr className="bg-white border-b hover:bg-gray-50">
-                            <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                                #TRX-89012
-                            </th>
-                            <td className="px-6 py-4">
-                                Sarah Jenkins
-                            </td>
-                            <td className="px-6 py-4">
-                                Luxury Rental (12 Hours)
-                            </td>
-                            <td className="px-6 py-4">
-                                Jan 15, 2026
-                            </td>
-                            <td className="px-6 py-4">
-                                Rp 2.500.000
-                            </td>
-                            <td className="px-6 py-4">
-                                <span className="bg-emerald-100 text-emerald-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full">Completed</span>
-                            </td>
-                        </tr>
-                        <tr className="bg-white border-b hover:bg-gray-50">
-                            <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                                #TRX-89011
-                            </th>
-                            <td className="px-6 py-4">
-                                Michael Chang
-                            </td>
-                            <td className="px-6 py-4">
-                                Airport Transfer (Drop-off)
-                            </td>
-                            <td className="px-6 py-4">
-                                Jan 14, 2026
-                            </td>
-                            <td className="px-6 py-4">
-                                Rp 850.000
-                            </td>
-                            <td className="px-6 py-4">
-                                 <span className="bg-blue-100 text-blue-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full">On Trip</span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                {stats.transactions.length > 0 ? (
+                    <table className="w-full text-sm text-left rtl:text-right text-gray-500">
+                        <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                            <tr>
+                                <th scope="col" className="px-6 py-3">Booking ID</th>
+                                <th scope="col" className="px-6 py-3">Guest Name</th>
+                                <th scope="col" className="px-6 py-3">Service</th>
+                                <th scope="col" className="px-6 py-3">Date</th>
+                                <th scope="col" className="px-6 py-3">Amount</th>
+                                <th scope="col" className="px-6 py-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {stats.transactions.map((trx) => (
+                                <tr key={trx.id} className="bg-white border-b hover:bg-gray-50">
+                                    <th scope="row" className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
+                                        #{trx.booking_id}
+                                    </th>
+                                    <td className="px-6 py-4">{trx.guest_name}</td>
+                                    <td className="px-6 py-4">{trx.service}</td>
+                                    <td className="px-6 py-4">{trx.date}</td>
+                                    <td className="px-6 py-4">Rp {parseFloat(trx.amount).toLocaleString('id-ID')}</td>
+                                    <td className="px-6 py-4">
+                                        <span className={`text-xs font-medium me-2 px-2.5 py-0.5 rounded-full ${
+                                            trx.status === 'completed' || trx.status === 'complete' ? 'bg-emerald-100 text-emerald-800' :
+                                            trx.status === 'canceled' ? 'bg-red-100 text-red-800' :
+                                            'bg-blue-100 text-blue-800'
+                                        }`}>
+                                            {trx.status}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                ) : (
+                    <div className="text-center py-8 text-slate-500">
+                        No transactions found.
+                    </div>
+                )}
             </div>
         </div>
       </div>
