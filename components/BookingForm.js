@@ -140,6 +140,9 @@ export default function BookingForm({ hotelData, bookingType = "reservation" }) 
         order_id: orderId,
         ref_payment_methods_id: formData.paymentMethod,
         version: '3.1.0',
+        passenger_name: formData.passengerName,
+        passenger_phone: formData.passengerWhatsApp,
+        passenger_email: formData.passengerEmail,
       };
 
       console.log('[Payment] Submitting payment for Order:', orderId);
