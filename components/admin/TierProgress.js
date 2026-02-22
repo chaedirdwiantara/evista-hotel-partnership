@@ -3,9 +3,9 @@ import { Trophy, TrendingUp } from 'lucide-react';
 
 const TierProgress = ({ currentBookings = 15, monthlyData = {} }) => {
   const tiers = [
-    { name: 'Base', min: 0, max: 9, rate: 20, color: 'slate', icon: '📊' },
-    { name: 'Silver', min: 10, max: 19, rate: 25, color: 'gray', icon: '🥈' },
-    { name: 'Gold', min: 20, max: Infinity, rate: 27, color: 'amber', icon: '🥇' }
+    { name: 'Bronze', min: 0,  max: 10, rate: 20, icon: '🥉' },
+    { name: 'Silver', min: 11, max: 20, rate: 25, icon: '🥈' },
+    { name: 'Gold',   min: 21, max: Infinity, rate: 27, icon: '🥇' },
   ];
 
   const getCurrentTier = () => {
@@ -96,7 +96,7 @@ const TierProgress = ({ currentBookings = 15, monthlyData = {} }) => {
                   {tier.rate}%
                 </p>
                 <p className="text-xs text-slate-500">
-                  {tier.max === Infinity ? `${tier.min}+` : `${tier.min}-${tier.max}`} bookings
+                  {tier.max === Infinity ? `Trx #${tier.min}+` : `Trx #${tier.min}–#${tier.max}`}
                 </p>
               </div>
             </div>
