@@ -142,7 +142,9 @@ export default function HotelPageContent({ hotelData: initialHotelData }) {
                estimatedDuration: apiRoute.estimated_duration || staticRoute.estimatedDuration,
                pricing: Object.keys(pricing).length > 0 ? pricing : staticRoute.pricing,
                // Ensure we have at least a fallback image if static missing
-               image: staticRoute.image || "/assets/hotels/gallery/01_soekarno_hatta.jpeg",
+               image: apiRoute.image || staticRoute.image || "/assets/hotels/gallery/01_soekarno_hatta.jpeg",
+               pickup: apiRoute.pickup || staticRoute.pickup,
+               destination: apiRoute.destination || staticRoute.destination,
              };
            });
 
