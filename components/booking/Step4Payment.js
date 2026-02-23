@@ -2,7 +2,8 @@
 
 import PaymentWaiting from "../PaymentWaiting";
 import PaymentFailed from "../PaymentFailed";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { toPng } from 'html-to-image';
 import { isUrgentNightBooking, buildUrgentNightMessage, sendWhatsAppMessage } from '@/lib/whatsapp-utils';
 
 /**
@@ -12,6 +13,70 @@ import { isUrgentNightBooking, buildUrgentNightMessage, sendWhatsAppMessage } fr
 export default function Step4Payment({ formData, updateFormData, calculatePrice, grandTotal, hotelData, paymentOptions, loading, paymentState, handlePaymentSuccess, handlePaymentExpired, handlePaymentCancel, handlePaymentFailed }) {
   // Use backend calculation (grandTotal) if available, otherwise fallback to local
   const totalPrice = grandTotal > 0 ? grandTotal : calculatePrice();
+
+  // Refs and States for Ticket Download
+  const ticketRef = useRef(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadTicket = async () => {
+    if (!ticketRef.current) return;
+    setIsDownloading(true);
+    try {
+        // give a tiny delay to ensure all styling is painted before capturing
+        await new Promise(resolve => setTimeout(resolve, 150));
+        
+        const dataUrl = await toPng(ticketRef.current, { cacheBust: true, pixelRatio: 2 });
+        
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `EVISTA-Ticket-${paymentState.bookingId || paymentState.orderId}.png`;
+        
+        // Append to body necessary for Firefox & Mobile Safari sometimes
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (err) {
+        console.error("Error generating ticket image:", err);
+        alert(`Gagal mengunduh (System: ${err.message || 'Error internal'}). Silakan screenshot manual resi ini.`);
+    } finally {
+        setIsDownloading(false);
+    }
+  };
+
+  const handleShareTicket = async () => {
+    const code = paymentState.bookingId || paymentState.orderId;
+    const text = `*Evista Booking Confirmed!*\n\nPassenger: ${formData.passengerName}\nOrder Code: *${code}*\n\nPlease show this code to your driver.`;
+    
+    // Safety check: Web Share API & Clipboard API often fail on non-HTTPS (except localhost)
+    const isSecureContext = window.isSecureContext;
+    
+    // Try native share first (usually works on Mobile Safari/Chrome even if HTTPS requirements are fussy, but better with HTTPS)
+    if (navigator.share && isSecureContext) {
+        try {
+            await navigator.share({
+                title: 'Evista E-Ticket',
+                text: text,
+            });
+            return;
+        } catch (err) {
+            console.log("User cancelled share or share failed", err);
+        }
+    } 
+    
+    // Fallback logic
+    if (navigator.clipboard) {
+        try {
+            await navigator.clipboard.writeText(text);
+            alert("Teks e-ticket berhasil disalin ke clipboard!");
+            return;
+        } catch (err) {
+            console.error("Clipboard write failed", err);
+        }
+    }
+    
+    // Final fallback for HTTP environments (like testing via IP address)
+    alert("Koneksi HTTP (bukan HTTPS) membatasi fitur salin/share otomatis. Silakan blok teks order di layar dan salin manual.");
+  };
 
   // Map payment icons/emojis based on bank name
   const getPaymentIcon = (bankName = "") => {
@@ -26,48 +91,130 @@ export default function Step4Payment({ formData, updateFormData, calculatePrice,
   // Payment Success State
   if (paymentState?.status === 'success') {
     return (
-      <div className="text-center py-8 md:py-12 animate-fadeIn px-4">
+      <div className="text-center py-8 md:py-12 animate-fadeIn px-2 md:px-4">
         <div className="text-6xl md:text-8xl mb-6 md:mb-8 mx-auto animate-bounce-slow">🎉</div>
         <h2 className="text-3xl md:text-4xl font-bold mb-3 md:mb-4" style={{ color: hotelData.theme.primaryColor }}>
           Booking Confirmed!
         </h2>
-        <p className="text-lg md:text-xl text-neutral-600 mb-8 max-w-lg mx-auto leading-relaxed">
-          Thank you, <span className="font-semibold">{formData.passengerName}</span>. Your booking has been successfully processed. 
+        <p className="text-sm md:text-lg text-neutral-600 mb-8 max-w-lg mx-auto leading-relaxed px-2">
+          Thank you, <span className="font-semibold text-neutral-800">{formData.passengerName}</span>. Your booking has been successfully processed. 
           Our driver will contact you via WhatsApp shortly.
         </p>
         
-        <div className="bg-white rounded-3xl mb-10 max-w-sm mx-auto border border-neutral-100 shadow-xl shadow-neutral-200/50 overflow-hidden">
-           <div className="h-2 w-full bg-gradient-to-r from-green-400 to-emerald-500"></div>
-           <div className="p-6 md:p-8 flex items-center justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                 <p className="text-xs text-neutral-400 uppercase tracking-widest mb-1 font-bold">Order Code</p>
-                 <p className="text-2xl md:text-3xl font-mono font-bold tracking-wider break-all" style={{ color: hotelData.theme.accentColor }}>
+        {/* E-Ticket Card Wrapper */}
+        <div style={{ maxWidth: '360px', margin: '0 auto', width: '100%', marginBottom: '24px', position: 'relative' }}>
+           {/* The actual ticket card we export */}
+           <div 
+             ref={ticketRef}
+             style={{ 
+                 backgroundColor: '#ffffff', 
+                 borderColor: '#e5e5e5', 
+                 borderWidth: '1px', 
+                 borderStyle: 'solid',
+                 borderRadius: '24px',
+                 overflow: 'hidden',
+                 position: 'relative',
+                 fontFamily: 'Arial, Helvetica, sans-serif'
+             }} 
+           >
+              <div style={{ height: '8px', width: '100%', backgroundColor: '#10b981' }}></div>
+              
+              {/* Ticket Header */}
+              <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ecfdf5', borderBottom: '1px dashed #e5e5e5' }}>
+                 <div style={{ fontWeight: 'bold', fontSize: '18px', color: '#064e3b' }}>EVISTA</div>
+                 <div style={{ fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', padding: '4px 10px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#d1fae5', color: '#047857' }}>
+                   Confirmed
+                 </div>
+              </div>
+
+              {/* Main Booking Code Area */}
+              <div style={{ padding: '32px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                 <p style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', color: '#737373', margin: '0 0 8px 0' }}>Booking Code</p>
+                 <p style={{ fontSize: '32px', fontFamily: 'monospace', fontWeight: 'bold', letterSpacing: '2px', wordBreak: 'break-all', color: '#b45309', textAlign: 'center', margin: 0, lineHeight: 1.2 }}>
                    {paymentState.bookingId || paymentState.orderId}
                  </p>
               </div>
-              <button 
-                onClick={() => {
-                  navigator.clipboard.writeText(paymentState.bookingId || paymentState.orderId);
-                  // Optional: You could add a temporary toast or state change here
-                  const btn = document.getElementById('copy-order-btn');
-                  if(btn) {
-                    const originalContent = btn.innerHTML;
-                    btn.innerHTML = '<span class="text-green-600">✓</span>';
-                    setTimeout(() => { btn.innerHTML = originalContent }, 2000);
-                  }
-                }}
-                id="copy-order-btn"
-                className="w-10 h-10 flex items-center justify-center rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 transition-colors flex-shrink-0"
-                title="Copy Order Code"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              
+              {/* Info Rows */}
+              <div style={{ padding: '0 24px 24px 24px', display: 'flex', flexDirection: 'column', gap: '12px', zIndex: 10 }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', paddingBottom: '8px', borderBottom: '1px solid #fafafa' }}>
+                   <span style={{ fontWeight: 500, whiteSpace: 'nowrap', color: '#737373' }}>Passenger</span>
+                   <span style={{ fontWeight: 700, textAlign: 'right', paddingLeft: '16px', wordBreak: 'break-all', color: '#262626' }}>{formData.passengerName}</span>
+                 </div>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', fontSize: '14px', paddingBottom: '8px', borderBottom: '1px solid #fafafa' }}>
+                   <span style={{ fontWeight: 500, whiteSpace: 'nowrap', marginTop: '2px', color: '#737373' }}>Service</span>
+                   <div style={{ textAlign: 'right' }}>
+                     <span style={{ fontWeight: 700, display: 'block', color: '#262626' }}>{formData.serviceType === "fixPrice" ? "Reservation" : "Rental"}</span>
+                     <span style={{ fontSize: '11px', fontWeight: 500, display: 'block', marginTop: '2px', color: '#737373' }}>
+                       {formData.serviceType === "rental" ? "Daily Rental" : (formData.isRoundTrip ? "Round Trip" : "One-Way")}
+                     </span>
+                   </div>
+                 </div>
+                 {formData.selectedVehicle && (
+                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', paddingBottom: '8px', borderBottom: '1px solid #fafafa' }}>
+                       <span style={{ fontWeight: 500, whiteSpace: 'nowrap', color: '#737373' }}>Vehicle</span>
+                       <span style={{ fontWeight: 700, textAlign: 'right', paddingLeft: '16px', color: '#262626' }}>
+                         {(() => {
+                           const vehicle = typeof formData.selectedVehicle === 'object' 
+                             ? formData.selectedVehicle
+                             : hotelData.fleet.find(v => v.id === formData.selectedVehicle);
+                           return vehicle?.name || vehicle?.brand || vehicle?.typename || 'Selected Vehicle';
+                         })()}
+                       </span>
+                     </div>
+                 )}
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', fontSize: '14px' }}>
+                   <span style={{ fontWeight: 500, whiteSpace: 'nowrap', marginTop: '2px', color: '#737373' }}>Date</span>
+                   <div style={{ textAlign: 'right' }}>
+                     <span style={{ fontWeight: 700, display: 'block', color: '#262626' }}>
+                       {new Date(formData.pickupDate || formData.rentalDate || new Date()).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                       {' • '}
+                       {formData.pickupTime || formData.rentalTime || '00:00'}
+                     </span>
+                     {formData.isRoundTrip && formData.returnDate && (
+                       <span style={{ fontSize: '11px', fontWeight: 500, display: 'block', marginTop: '2px', color: '#737373' }}>
+                         Return: {new Date(formData.returnDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                         {' • '}
+                         {formData.returnTime || '00:00'}
+                       </span>
+                     )}
+                   </div>
+                 </div>
+              </div>
+
+              {/* Footer text */}
+              <div style={{ padding: '14px', fontSize: '11px', fontWeight: 500, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(250, 250, 250, 0.8)', color: '#737373', borderTop: '1px dashed #e5e5e5' }}>
+                <svg style={{ width: '16px', height: '16px', color: '#10b981' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Please show this E-Ticket to the driver
+              </div>
+           </div>
+        </div>
+
+        {/* Action Buttons: Save & Share */}
+        <div className="max-w-[360px] mx-auto w-full flex gap-2 sm:gap-3 mb-10 px-2 sm:px-0">
+            <button 
+                onClick={handleDownloadTicket}
+                disabled={isDownloading}
+                className="flex-1 bg-white border-2 border-neutral-100 hover:border-emerald-500 text-neutral-700 hover:text-emerald-600 font-bold py-3.5 px-1 sm:px-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1 sm:gap-2 disabled:opacity-50 disabled:cursor-not-allowed group hover:-translate-y-0.5 whitespace-nowrap"
+            >
+                {isDownloading ? (
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-400 group-hover:text-emerald-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                )}
+                <span className="text-xs sm:text-[13px] md:text-sm">Save E-Ticket</span>
+            </button>
+            <button 
+                onClick={handleShareTicket}
+                className="flex-1 bg-white border-2 border-neutral-100 hover:border-emerald-500 text-neutral-700 hover:text-emerald-600 font-bold py-3.5 px-1 sm:px-3 rounded-xl transition-all shadow-sm flex items-center justify-center gap-1 sm:gap-2 group hover:-translate-y-0.5 whitespace-nowrap"
+            >
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-400 group-hover:text-emerald-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                 </svg>
-              </button>
-           </div>
-           <div className="bg-neutral-50 p-3 text-xs text-neutral-400 border-t border-neutral-100">
-             Show this code to your driver
-           </div>
+                <span id="share-btn-text" className="text-xs sm:text-[13px] md:text-sm">Share Info</span>
+            </button>
         </div>
         
         {/* Urgent Night Booking - Manual WhatsApp Contact */}
