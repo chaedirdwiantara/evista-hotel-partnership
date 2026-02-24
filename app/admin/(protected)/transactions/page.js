@@ -59,6 +59,7 @@ const CommissionBadge = ({ tier, rate, amount }) => {
     Bronze: { emoji: '🥉', cls: 'text-amber-700 bg-amber-50 border-amber-200' },
     Silver: { emoji: '🥈', cls: 'text-slate-600 bg-slate-100 border-slate-200' },
     Gold:   { emoji: '🥇', cls: 'text-yellow-700 bg-yellow-50 border-yellow-200' },
+    Rental: { emoji: '🚗', cls: 'text-orange-700 bg-orange-50 border-orange-200' },
   };
   const { emoji, cls } = map[tier] ?? { emoji: '', cls: 'text-slate-600 bg-slate-100 border-slate-200' };
   return (
@@ -168,6 +169,7 @@ const TierBreakdownModal = ({ summary, onClose }) => {
     { key: 'bronze', emoji: '🥉', label: 'Bronze', cls: 'text-amber-700' },
     { key: 'silver', emoji: '🥈', label: 'Silver',  cls: 'text-slate-500' },
     { key: 'gold',   emoji: '🥇', label: 'Gold',    cls: 'text-yellow-600' },
+    { key: 'rental', emoji: '🚗', label: 'Rental',  cls: 'text-orange-700' },
   ];
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
@@ -185,7 +187,7 @@ const TierBreakdownModal = ({ summary, onClose }) => {
           <div className="bg-blue-50 rounded-xl p-4">
             <p className="text-xs text-blue-400 font-semibold uppercase tracking-wide mb-1">Skema Tiering</p>
             <p className="text-xs text-blue-700 leading-relaxed">
-              Trx #1–10 → <strong>20%</strong> (Bronze) · Trx #11–20 → <strong>25%</strong> (Silver) · Trx #21+ → <strong>27%</strong> (Gold). Urutan dihitung berdasarkan tanggal pembayaran (flip_paid_at) dalam satu bulan kalender.
+              Trx #1–10 → <strong>20%</strong> (Bronze) · Trx #11–20 → <strong>25%</strong> (Silver) · Trx #21+ → <strong>27%</strong> (Gold). Urutan dihitung berdasarkan tanggal pembayaran (flip_paid_at) dalam satu bulan kalender. Layanan Rental mendapatkan <strong>Flat 20%</strong> dan dikecualikan dari perhitungan tier.
             </p>
           </div>
           <div className="overflow-hidden rounded-xl border border-slate-100">
