@@ -57,9 +57,9 @@ export default function RentalVehicleGrid({
           
           // Data mapping with fallbacks
           const imageUrl = vehicle.media?.url || vehicle.image || '/images/cars/default.jpg';
-          const vehicleName = vehicle.name || `${vehicle.brand || ''} ${vehicle.typename || ''}`.trim() || 'Rental Vehicle';
+          const vehicleName = vehicle.brand || vehicle.name || 'Rental Vehicle';
           const passengerCount = vehicle.seats_count || vehicle.capacity || 4;
-          const category = vehicle.vehicleClass || vehicle.category || vehicle.typename || 'Standard';
+          const category = vehicle.typename || vehicle.vehicleClass || vehicle.category || 'Standard';
 
           return (
             <VehicleCard

@@ -53,8 +53,8 @@ export default function VehicleClassSelection({
               <VehicleCard
                 key={car.id}
                 image={imageUrl}
-                name={car.typename}
-                category={car.brand}
+                name={car.brand}
+                category={car.typename}
                 price={displayPrice}
                 passengers={car.seats_count || car.capacity || 4}
                 features={[]}
