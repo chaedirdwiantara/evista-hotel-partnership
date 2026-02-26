@@ -19,54 +19,18 @@ export default function HotelPageContent({ hotelData: initialHotelData }) {
   const [scrolled, setScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [activeHotelData, setActiveHotelData] = useState(initialHotelData);
+  const [isLoadingRoutes, setIsLoadingRoutes] = useState(true);
 
   // Fetch Hotel Data from API
   useEffect(() => {
     const fetchHotelData = async () => {
+      setIsLoadingRoutes(true);
       try {
         const token = await EvistaAPI.auth.getUserToken();
         if (!token) return;
 
-        // DEBUG: Fetch Pickup Points
-        try {
-          const hotelLat = initialHotelData.routes[0]?.pickup?.lat;
-          const hotelLng = initialHotelData.routes[0]?.pickup?.lng;
-          
-          if (hotelLat && hotelLng) {
-            const pickupPointsResponse = await EvistaAPI.trips.getPickupPoints(hotelLat, hotelLng);
-            console.log("DEBUG RESPONSE [api/trip/pickup-point/list]:", pickupPointsResponse);
-
-            // Find ID for Classic Hotel
-            if (pickupPointsResponse?.data && Array.isArray(pickupPointsResponse.data)) {
-              const targetHotel = pickupPointsResponse.data.find(p => 
-                p.name?.toLowerCase().includes("classic hotel") || 
-                p.name?.toLowerCase().includes("hotel classic")
-              );
-
-              if (targetHotel) {
-                console.log("Found Target Hotel ID:", targetHotel.id);
-                try {
-                  // Call 1: Trip Type 'later'
-                  const setResponseLater = await EvistaAPI.trips.setPickupPoint(targetHotel.id, 'later');
-                  console.log("DEBUG RESPONSE [api/trip/pickup-point/set] (later):", setResponseLater);
-
-                  // Call 2: Trip Type 'rental'
-                  const setResponseRental = await EvistaAPI.trips.setPickupPoint(targetHotel.id, 'rental');
-                  console.log("DEBUG RESPONSE [api/trip/pickup-point/set] (rental):", setResponseRental);
-                } catch (setError) {
-                  console.error("Failed to set pickup point:", setError);
-                }
-              } else {
-                console.warn("Target hotel (Classic Hotel) not found in pickup points list");
-              }
-            }
-          }
-        } catch (err) {
-          console.error("Failed to fetch pickup points:", err);
-        }
-
         // Fetch Hotel Details (via local proxy to avoid CORS)
-        const hotelUrl = `/api/hotel/classic-hotel`;
+        const hotelUrl = `/api/hotel/${initialHotelData.slug}`;
         const hotelRes = await fetch(hotelUrl, { 
           headers: { 
             'Authorization': `Bearer ${token}`,
@@ -99,7 +63,7 @@ export default function HotelPageContent({ hotelData: initialHotelData }) {
         }
 
         // Fetch Routes (via local proxy to avoid CORS)
-        const routesUrl = `/api/hotel/classic-hotel/routes`;
+        const routesUrl = `/api/hotel/${initialHotelData.slug}/routes`;
         const routesRes = await fetch(routesUrl, { 
           headers: { 
             'Authorization': `Bearer ${token}`,
@@ -152,15 +116,49 @@ export default function HotelPageContent({ hotelData: initialHotelData }) {
              ...prev,
              routes: mergedRoutes
            }));
+
+           // Initialize Trip Session Pickup Points with fetched route coordinates
+           try {
+             const hotelLat = mergedRoutes[0]?.pickup?.lat;
+             const hotelLng = mergedRoutes[0]?.pickup?.lng;
+             
+             if (hotelLat && hotelLng) {
+               const pickupPointsResponse = await EvistaAPI.trips.getPickupPoints(hotelLat, hotelLng);
+               
+               // Find ID for the Hotel
+               if (pickupPointsResponse?.data && Array.isArray(pickupPointsResponse.data)) {
+                 const hotelSearchName = initialHotelData.name.toLowerCase();
+                 const targetHotel = pickupPointsResponse.data.find(p => 
+                   p.name?.toLowerCase().includes(hotelSearchName) || 
+                   p.name?.toLowerCase().includes("hotel classic")
+                 );
+   
+                 if (targetHotel) {
+                   try {
+                     // Call 1: Trip Type 'later'
+                     await EvistaAPI.trips.setPickupPoint(targetHotel.id, 'later');
+                     // Call 2: Trip Type 'rental'
+                     await EvistaAPI.trips.setPickupPoint(targetHotel.id, 'rental');
+                   } catch (setError) {
+                     console.error("Failed to set pickup point:", setError);
+                   }
+                 }
+               }
+             }
+           } catch (err) {
+             console.error("Failed to initialize pickup points:", err);
+           }
         }
 
       } catch (err) {
         console.error("Failed to load hotel data:", err);
+      } finally {
+        setIsLoadingRoutes(false);
       }
     };
 
     fetchHotelData();
-  }, []);
+  }, [initialHotelData.slug]);
 
   useEffect(() => {
     // Trigger animations on mount
@@ -373,12 +371,19 @@ export default function HotelPageContent({ hotelData: initialHotelData }) {
       <AboutPartnership hotelData={activeHotelData} />
 
       {/* Fix Price Routes Section */}
-      <div id="routes">
-        <FixPriceRoutes 
-          routes={activeHotelData.routes}
-          accentColor={activeHotelData.theme.accentColor}
-          primaryColor={activeHotelData.theme.primaryColor}
-        />
+      <div id="routes" className="min-h-[400px]">
+        {isLoadingRoutes ? (
+          <div className="py-24 bg-white flex flex-col items-center justify-center h-full">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-600 mb-4"></div>
+            <p className="text-neutral-500 font-medium">Memuat rute perjalanan...</p>
+          </div>
+        ) : (
+          <FixPriceRoutes 
+            routes={activeHotelData.routes || []}
+            accentColor={activeHotelData.theme.accentColor}
+            primaryColor={activeHotelData.theme.primaryColor}
+          />
+        )}
       </div>
 
       {/* Fleet Showcase Section */}
@@ -398,9 +403,14 @@ export default function HotelPageContent({ hotelData: initialHotelData }) {
           </h2>
           
 
-          
-          {/* Booking Form */}
-          <BookingForm hotelData={activeHotelData} />
+          {isLoadingRoutes ? (
+            <div className="py-24 flex flex-col items-center justify-center">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-600 mb-4"></div>
+              <p className="text-neutral-500 font-medium">Mempersiapkan form pemesanan...</p>
+            </div>
+          ) : (
+            <BookingForm hotelData={activeHotelData} />
+          )}
         </div>
       </section>
 
