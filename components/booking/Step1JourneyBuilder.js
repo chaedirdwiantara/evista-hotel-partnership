@@ -26,7 +26,7 @@ import RentalFields from './RentalFields';
 import RentalVehicleGrid from './RentalVehicleGrid';
 import DateTimeSection from './DateTimeSection';
 import VehicleClassSelection from './VehicleClassSelection';
-import TripTypeSelector from './TripTypeSelector';
+// import TripTypeSelector from './TripTypeSelector';
 import PriceSummary from './PriceSummary';
 
 /**
@@ -229,11 +229,12 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
   };
 
   /**
-   * Handle trip type change
+   * Handle trip type change (Hidden for now)
    */
   const handleTripTypeChange = (isRoundTrip) => {
     updateFormData("isRoundTrip", isRoundTrip);
   };
+
 
   /**
    * Handle rental vehicle selection
@@ -420,14 +421,14 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
         />
       )}
 
-      {/* TRIP TYPE SELECTOR - Positioned before DateTime for better flow */}
-      {showDateTime && formData.bookingType !== 'rental' && (
+      {/* TRIP TYPE SELECTOR - Hidden as per request (Secara default One Way) */}
+      {/* {showDateTime && formData.bookingType !== 'rental' && (
         <TripTypeSelector
           isRoundTrip={formData.isRoundTrip}
           onTripTypeChange={handleTripTypeChange}
           hotelData={hotelData}
         />
-      )}
+      )} */}
 
       {/* DATE/TIME SECTION */}
       {showDateTime && (
