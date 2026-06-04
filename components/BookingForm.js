@@ -5,6 +5,7 @@ import { EvistaAPI } from "@/lib/evista-api";
 import { selectPickupLocation, selectDestination } from "@/lib/manual-destination-api";
 import { isUrgentNightBooking, buildUrgentNightMessage, sendWhatsAppMessage, sendAdminAutoNotification } from "@/lib/whatsapp-utils";
 import { useVehicleSelection } from "@/hooks/useVehicleSelection";
+import { DEFAULT_JOURNEY_DIRECTION } from "@/lib/journeyUtils";
 import PaymentWaiting from "./PaymentWaiting";
 import Step1JourneyBuilder from "./booking/Step1JourneyBuilder";
 import Step2PassengerDetails from "./booking/Step3PassengerDetails";
@@ -29,6 +30,7 @@ export default function BookingForm({ hotelData, bookingType = "reservation" }) 
     selectedVehicleClass: null,
     selectedVehicle: null,
     isRoundTrip: false,
+    routeDirection: DEFAULT_JOURNEY_DIRECTION,
     
     // Step 1 - Rental Specific
     withDriver: true,

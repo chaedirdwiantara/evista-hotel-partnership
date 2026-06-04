@@ -13,6 +13,8 @@ export default function ManualDestinationInput({
   selectedDestination: externalSelectedDestination, // New: Controlled prop
   primaryColor = "#1a1a1a",
   accentColor = "#d4af37",
+  placeholder = "Search destination (e.g., Stasiun Kereta Cepat)",
+  selectedLabel = "Selected Destination:",
   className = "" 
 }) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -159,7 +161,7 @@ export default function ManualDestinationInput({
               }
             }}
             onBlur={() => setIsFocused(false)}
-            placeholder="Search destination (e.g., Stasiun Kereta Cepat)"
+            placeholder={placeholder}
             className="w-full pl-12 pr-12 py-4 rounded-xl border-2 transition-all text-base"
             style={{
               borderColor: isFocused ? (accentColor || '#D4AF37') : '#e5e5e5',
@@ -178,6 +180,7 @@ export default function ManualDestinationInput({
           {/* Clear Button */}
           {selectedDestination && (
             <button
+              type="button"
               onClick={handleClearSelection}
               className="absolute right-4 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
               title="Clear selection"
@@ -201,6 +204,7 @@ export default function ManualDestinationInput({
           {searchResults.map((result, index) => (
             <button
               key={result.place_id || index}
+              type="button"
               onClick={() => {
                 console.log('[DIRECT CLICK] Button clicked!', result);
                 handleSelectDestination(result);
@@ -229,7 +233,7 @@ export default function ManualDestinationInput({
       {showResults && searchResults.length === 0 && !isSearching && searchQuery.length >= 3 && (
         <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-2xl border-2 border-neutral-200 px-6 py-8 text-center">
           <p className="text-neutral-500">
-            No destinations found for "{searchQuery}"
+            No destinations found for {searchQuery}
           </p>
           <p className="text-sm text-neutral-400 mt-2">
             Try different keywords or check your spelling
@@ -237,7 +241,7 @@ export default function ManualDestinationInput({
         </div>
       )}
 
-      {/* Selected Destination Display */}
+      {/* Selected location display */}
       {selectedDestination && (
         <div 
           className="mt-4 p-4 rounded-xl border-2 transition-all"
@@ -256,7 +260,7 @@ export default function ManualDestinationInput({
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-neutral-600 mb-1">
-                Selected Destination:
+                {selectedLabel}
               </p>
               <h4 className="font-bold text-neutral-800 mb-1">
                 {selectedDestination.name}

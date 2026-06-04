@@ -15,13 +15,16 @@ export default function RouteSelector({
   routes, 
   selectedRouteId, 
   onRouteSelect, 
-  hotelData 
+  hotelData,
+  placeholder = 'Select your destination...',
+  getRouteLabel = (route) => route.name
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   
   // Find selected route
   const selectedRoute = routes.find(r => r.id === selectedRouteId);
+  const selectedRouteLabel = selectedRoute ? getRouteLabel(selectedRoute) : null;
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -68,14 +71,14 @@ export default function RouteSelector({
             {selectedRoute ? (
               <>
                 <h4 className="font-bold text-base md:text-lg break-words leading-tight" style={{ color: hotelData.theme.primaryColor }}>
-                  {selectedRoute.name}
+                  {selectedRouteLabel}
                 </h4>
                 <p className="text-sm text-neutral-500">
                   {selectedRoute.distance} km • {selectedRoute.estimatedDuration} min
                 </p>
               </>
             ) : (
-              <p className="text-neutral-400 font-medium">Select your destination...</p>
+              <p className="text-neutral-400 font-medium">{placeholder}</p>
             )}
           </div>
         </div>
@@ -95,38 +98,42 @@ export default function RouteSelector({
           style={{ borderColor: hotelData.theme.accentColor }}
         >
           <div className="max-h-60 overflow-y-auto custom-scrollbar">
-            {routes.map((route, index) => (
-              <button
-                key={route.id}
-                type="button"
-                onClick={() => handleSelect(route.id)}
-                className={`w-full px-5 py-4 text-left transition-all duration-200 border-b border-neutral-100 last:border-b-0 ${
-                  selectedRouteId === route.id
-                    ? 'bg-gradient-to-r from-amber-50 to-white'
-                    : 'hover:bg-neutral-50'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h5 className="font-bold text-base mb-1" style={{ color: hotelData.theme.primaryColor }}>
-                      {route.name}
-                    </h5>
-                    <p className="text-sm text-neutral-500">
-                      {route.distance} km • {route.estimatedDuration} min
-                    </p>
-                  </div>
-                  
-                  {selectedRouteId === route.id && (
-                    <div 
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0 ml-3"
-                      style={{ backgroundColor: hotelData.theme.accentColor }}
-                    >
-                      ✓
+            {routes.map((route) => {
+              const routeLabel = getRouteLabel(route);
+
+              return (
+                <button
+                  key={route.id}
+                  type="button"
+                  onClick={() => handleSelect(route.id)}
+                  className={`w-full px-5 py-4 text-left transition-all duration-200 border-b border-neutral-100 last:border-b-0 ${
+                    selectedRouteId === route.id
+                      ? 'bg-gradient-to-r from-amber-50 to-white'
+                      : 'hover:bg-neutral-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h5 className="font-bold text-base mb-1" style={{ color: hotelData.theme.primaryColor }}>
+                        {routeLabel}
+                      </h5>
+                      <p className="text-sm text-neutral-500">
+                        {route.distance} km • {route.estimatedDuration} min
+                      </p>
                     </div>
-                  )}
-                </div>
-              </button>
-            ))}
+                    
+                    {selectedRouteId === route.id && (
+                      <div 
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-white text-sm flex-shrink-0 ml-3"
+                        style={{ backgroundColor: hotelData.theme.accentColor }}
+                      >
+                        ✓
+                      </div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
