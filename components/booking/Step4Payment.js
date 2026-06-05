@@ -5,6 +5,7 @@ import PaymentFailed from "../PaymentFailed";
 import { useState, useEffect, useRef } from 'react';
 import { toPng } from 'html-to-image';
 import { isUrgentNightBooking, buildUrgentNightMessage, sendWhatsAppMessage } from '@/lib/whatsapp-utils';
+import { getReservationRouteLabel } from '@/lib/journeyUtils';
 
 /**
  * Step 4: Payment & Confirmation Component
@@ -13,6 +14,9 @@ import { isUrgentNightBooking, buildUrgentNightMessage, sendWhatsAppMessage } fr
 export default function Step4Payment({ formData, updateFormData, calculatePrice, grandTotal, hotelData, paymentOptions, loading, paymentState, handlePaymentSuccess, handlePaymentExpired, handlePaymentCancel, handlePaymentFailed }) {
   // Use backend calculation (grandTotal) if available, otherwise fallback to local
   const totalPrice = grandTotal > 0 ? grandTotal : calculatePrice();
+  const reservationRouteLabel = formData.serviceType === 'fixPrice' && (formData.selectedRoute || formData.manualDestination)
+    ? getReservationRouteLabel(formData, hotelData)
+    : null;
 
   // Refs and States for Ticket Download
   const ticketRef = useRef(null);
@@ -371,11 +375,11 @@ export default function Step4Payment({ formData, updateFormData, calculatePrice,
             </div>
           )}
 
-          {formData.selectedRoute && (
+          {reservationRouteLabel && (
             <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-1 md:gap-4 border-b border-neutral-200/50 pb-3">
               <span className="text-sm text-neutral-500 font-medium uppercase tracking-wide md:pt-1">Route</span>
               <span className="font-bold text-neutral-800 md:text-right md:max-w-[60%] leading-snug">
-                {hotelData.routes.find(r => r.id === formData.selectedRoute)?.name}
+                {reservationRouteLabel}
               </span>
             </div>
           )}
@@ -496,7 +500,7 @@ export default function Step4Payment({ formData, updateFormData, calculatePrice,
             <div className="text-5xl mb-4">🚧</div>
             <h3 className="text-xl font-bold text-amber-900 mb-2">Service Temporarily Unavailable</h3>
             <p className="text-amber-800 text-sm max-w-sm mx-auto">
-              We couldn't load online payment options at this moment. 
+              We could not load online payment options at this moment.
               Please try again later or contact our support.
             </p>
           </div>

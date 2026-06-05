@@ -12,11 +12,12 @@ import { useRentalSubmission } from '@/hooks/useRentalSubmission';
 
 // Utility Functions
 import { 
+  DEFAULT_JOURNEY_DIRECTION,
   getCurrentPrice, 
   getRouteSelectionType, 
   shouldShowDateTime, 
   shouldShowVehicleSelection,
-  createHotelPickupLocation 
+  createJourneyLocations
 } from '@/lib/journeyUtils';
 
 // UI Components
@@ -83,6 +84,7 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
       updateFormData("orderId", null);
       updateFormData("selectedVehicle", null);
       updateFormData("manualDestination", null);
+      updateFormData("routeId", null);
       
       // Set Default Duration to 6 Hours
       updateFormData("rentalDuration", "6_hours");
@@ -99,12 +101,31 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
       updateFormData("returnTime", "");
       updateFormData("orderId", null);
       updateFormData("selectedVehicle", null);
+      updateFormData("backendCarData", null);
+      updateFormData("routeDirection", DEFAULT_JOURNEY_DIRECTION);
     }
   };
 
   /**
-   * Handle manual destination selection
+   * Handle reservation direction change.
+   * Resets dependent trip/session data because pickup and destination are swapped.
    */
+  const handleRouteDirectionChange = (routeDirection) => {
+    const currentDirection = formData.routeDirection || DEFAULT_JOURNEY_DIRECTION;
+    if (routeDirection === currentDirection) return;
+
+    updateFormData("routeDirection", routeDirection);
+    updateFormData("selectedRoute", null);
+    updateFormData("manualDestination", null);
+    updateFormData("selectedVehicleClass", null);
+    updateFormData("selectedVehicle", null);
+    updateFormData("backendCarData", null);
+    updateFormData("orderId", null);
+    updateFormData("routeId", null);
+    vehicleSelection.clearVehicles();
+    setDestinationError(null);
+  };
+
   /**
    * Handle manual destination selection
    * Uses optimistic update: UI updates immediately, API calls run in background
@@ -132,12 +153,16 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
     
     // Run API calls in background (non-blocking)
     try {
-      const hotelPickupLocation = createHotelPickupLocation(hotelData);
+      const { pickupLocation, destinationLocation } = createJourneyLocations({
+        formData,
+        hotelData,
+        manualLocation: destination,
+      });
       
       // API calls run in parallel for faster execution
       const [_, __, rtData] = await Promise.all([
-        selectPickupLocation(hotelPickupLocation, 'later'),
-        selectDestination(destination, 'later'),
+        selectPickupLocation(pickupLocation, 'later'),
+        selectDestination(destinationLocation, 'later'),
         setRoundTrip(formData.isRoundTrip)
       ]);
       
@@ -172,19 +197,17 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
     // This sets up the trip session in the backend before user selects time
     const initializeSession = async () => {
       try {
-        const hotelPickupLocation = createHotelPickupLocation(hotelData);
+        const { pickupLocation, destinationLocation } = createJourneyLocations({
+          formData,
+          hotelData,
+          route,
+        });
         
-        // 1. Set Pickup Location (Hotel) - Initializes the session
-        await selectPickupLocation(hotelPickupLocation, 'later');
+        // 1. Set Pickup Location - Initializes the session
+        await selectPickupLocation(pickupLocation, 'later');
         console.log('[Fixed Route] ✅ Pickup location set');
         
-        // 2. Set Destination Location (Route destination)
-        const destinationLocation = {
-          lat: route.destination?.lat || -6.2382699,
-          long: route.destination?.lng || 106.8553428,
-          label: route.name || 'Destination',
-          address: route.description || '',
-        };
+        // 2. Set Destination Location
         await selectDestination(destinationLocation, 'later');
         console.log('[Fixed Route] ✅ Destination location set');
         
@@ -408,6 +431,7 @@ export default function Step1JourneyBuilder({ formData, updateFormData, hotelDat
           onFixedRouteSelect={handleFixedRouteSelect}
           onManualDestinationSelect={handleManualDestinationSelect}
           onManualInputFocus={handleManualInputFocus}
+          onRouteDirectionChange={handleRouteDirectionChange}
           destinationError={destinationError}
         />
       )}

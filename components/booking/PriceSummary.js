@@ -1,5 +1,7 @@
 "use client";
 
+import { getReservationRouteLabel } from '@/lib/journeyUtils';
+
 /**
  * PriceSummary Component
  * 
@@ -16,7 +18,7 @@ export default function PriceSummary({ formData, hotelData, routeSelectionType, 
   // Price Summary - Fixed Route
   if (currentPrice && routeSelectionType === 'fixed') {
     const vehicleClassName = hotelData.vehicleClasses.find(v => v.id === formData.selectedVehicleClass)?.name;
-    const routeName = hotelData.routes.find(r => r.id === formData.selectedRoute)?.name;
+    const routeName = getReservationRouteLabel(formData, hotelData);
 
     return (
       <div className="p-6 bg-gradient-to-br from-neutral-900 to-neutral-800 rounded-2xl text-white">
@@ -41,6 +43,8 @@ export default function PriceSummary({ formData, hotelData, routeSelectionType, 
 
   // Price Summary - Manual Destination
   if (formData.backendCarData && routeSelectionType === 'manual') {
+    const routeName = getReservationRouteLabel(formData, hotelData);
+
     return (
       <div className="p-6 bg-gradient-to-br from-neutral-900 to-neutral-800 rounded-2xl text-white">
         <div className="flex justify-between items-center">
@@ -49,7 +53,7 @@ export default function PriceSummary({ formData, hotelData, routeSelectionType, 
               {formData.isRoundTrip ? "Round Trip" : "One Way"} • {formData.backendCarData.typename}
             </p>
             <p className="text-sm text-neutral-500">
-              {formData.manualDestination?.name}
+              {routeName}
             </p>
           </div>
           <div className="text-right">
