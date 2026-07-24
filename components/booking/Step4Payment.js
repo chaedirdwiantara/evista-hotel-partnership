@@ -104,7 +104,25 @@ export default function Step4Payment({ formData, updateFormData, calculatePrice,
           Thank you, <span className="font-semibold text-neutral-800">{formData.passengerName}</span>. Your booking has been successfully processed. 
           Our driver will contact you via WhatsApp shortly.
         </p>
-        
+
+        {/* Hotel Reservation Confirmation Notice */}
+        <div className="max-w-md mx-auto mb-8 px-2 sm:px-0">
+          <div className="p-5 bg-amber-50 border-2 border-amber-300 rounded-2xl text-left shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl shrink-0" aria-hidden="true">🛎️</div>
+              <div className="flex-1">
+                <h3 className="font-bold text-amber-900 mb-1 text-sm md:text-base">
+                  Important: Confirm Your Booking
+                </h3>
+                <p className="text-sm text-amber-800 leading-relaxed">
+                  Please proceed to the hotel <span className="font-semibold">Reservation Desk</span> immediately
+                  to confirm your booking. Show your E-Ticket below to the reservation staff.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* E-Ticket Card Wrapper */}
         <div style={{ maxWidth: '360px', margin: '0 auto', width: '100%', marginBottom: '24px', position: 'relative' }}>
            {/* The actual ticket card we export */}
